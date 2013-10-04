@@ -5,28 +5,23 @@
 #include <map>
 #include <cassert>
 #include "../gc_new/gc_new.h"
-
 #include <cstdio>
 
-struct ptr_list
-{
+struct ptr_list {
 	void *ptr;
 	bool stack_ptr;
 
-	ptr_list ()
-	{
+	ptr_list () {
 		next = 0;
 		prev = 0;
 		ptr = 0;
 	}
 
-	ptr_list (void *v)
-	{
+	ptr_list (void *v) {
 		next = 0;
 		prev = 0;
 		ptr = v;
 	}
-
 
 	ptr_list *next;
 	ptr_list *prev;
