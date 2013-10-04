@@ -1,4 +1,3 @@
-
 #include </home/mariia/Desktop/object_repres/boxing.h>
 #include <iterator>
 #include <vector>
@@ -6,14 +5,14 @@
 #include <cstdio>
 
 using namespace std;
-
 # define BYTESIZE  8
 
 void * generic_box_simple (void * ptr_to_heap, size_t type) { 
 	void * object = create_generic_object(1, 0, 0); 
 	word_t value = 0;
-	for (size_t j = 0; j < type / BYTESIZE; j++) 
+	for (size_t j = 0; j < type / BYTESIZE; j++) {
 		value |= (*((unsigned char *)ptr_to_heap + j)) << (j * BYTESIZE);
+	}
 	set_word(object, 1, value);
 	return object;
 }
@@ -22,8 +21,9 @@ void * generic_box_unboxed_array(void * ptr_to_heap, size_t len, size_t type) {
 	void * object = create_unboxed_array(len); 
 	for (size_t i = 1; i < len + 1; i++) {
 		word_t value = 0;
-		for (size_t j = 0; j < type / BYTESIZE; j++) 
+		for (size_t j = 0; j < type / BYTESIZE; j++) {
 			value |= (*((unsigned char *)ptr_to_heap + (i-1) * type / BYTESIZE + j)) << (j * BYTESIZE);
+		}
 		set_word(object, i, value);
 	}
 	return object;
@@ -74,9 +74,9 @@ void * generic_box_struct (void * ptr_to_heap, size_t len, list <size_t> num_el_
 		offset_diff = *it_offset1 - *it_offset2;  // разность смещений, нужна для вычисления следующего указателя на объект в куче, при работе с вложенными струтурами
 		it_offset1++;
 		it_offset2++;
-	}
-	else
+	} else {
 		offset_diff = 0;
+	}
  	
 	for ( int i = 1; i < len + 1; i++, it_size++,it_type++,it_mod++) {
 		switch(* it_mod) {
@@ -135,10 +135,3 @@ void * generic_box_struct (void * ptr_to_heap, size_t len, list <size_t> num_el_
 	}
 	return object;	
 }
-
-
-		
-
-
- 
-
