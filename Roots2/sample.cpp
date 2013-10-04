@@ -2,8 +2,7 @@
 #include <vector>
 #include <cstdio>
 
-int main ()
-{
+int main () {
 	gc_ptr <int> a;
 	a = new int[20];
 	gc_ptr <int> b;
