@@ -1,6 +1,10 @@
+/****************************************************************************************
+	* File: collect.h
+	* Description: This file consists code with realised functions from "collect.h"
+*****************************************************************************************/
 #include "collect.h"
 
-ptr_list *all_ptr = 0;
+ptr_list *all_ptr = 0;  //!< list of ?stack? pointers
 
 ptr_list* add (ptr_list *&head, void *ptr)
 {
@@ -35,13 +39,12 @@ void clear (ptr_list *v)
 	delete v;
 }
 
-void dec (ptr_list *me)
-{
-	del(all_ptr, me);
-}
-
 ptr_list* inc (void *p)
 {
 	return add(all_ptr, p);
 }
 
+void dec (ptr_list *me)
+{
+	del(all_ptr, me);
+}
