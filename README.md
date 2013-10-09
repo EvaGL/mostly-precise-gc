@@ -1,4 +1,4 @@
 DiplomaGC
 =========
-blabla
-ololo
+
+Non-conservative garbage collector for C++ language.
