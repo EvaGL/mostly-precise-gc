@@ -1,29 +1,74 @@
-﻿#include "boxing2.h"
+/****************************************************************************************
+	* File: boxing.cpp
+	* Description: This file consists code with realiasation of functions described in "boxing.h"
+	* Update: 17/10/13
+*****************************************************************************************/
+#include "boxing2.h"
 #include <iterator>
 #include "taginfo.h"
 #include <cstdio>
 
+/** 
+* @brief generation box for one-word object
+* @detailed return the pointer on object which have created with create_generic_object function
+* @param null
+*/
 void * generic_box_simple () { 
+	/*
+	 * call generic function for creating object in one-word
+	 * first arg - num of ptr descr, sec arg - size(depend from num of ptr descr), thd arg - num words
+	 * /
 	return create_generic_object(0, 0, 1); 
 }
 
+/** 
+* @brief generation box for arrays with unboxed elements
+* @detailed return the pointer on object which have created with create_unboxed_array function
+* @param num of elements
+*/
 void * generic_box_unboxed_array(size_t len) {
+	/*
+	 * call the function for creating object with unboxed elements
+	 * first arg - num of unboxed elements in array
+	 * /
 	return create_unboxed_array(len);
 }
 
+/** 
+* @brief generation box for arrays with unboxed elements
+* @detailed return the pointer on object which have created with create_unboxed_array function
+* @param num of elements
+*/
 void * generic_box_boxed_array (size_t len) { 
+	/*<
+	  * call the function for creating object with boxed elements
+	  * first arg - num of boxed elements in array
+	 */	
 	return create_boxed_array(len);
 }
 
+/** 
+* @brief generation box for struct
+* @detailed return the pointer on object which have created with create_generic_object function
+* @param list of ptr offsets in struct, full size of real struct, num of ptr
+*/
 void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
-	void* object;
-	try { 
+	void* object; /**< a stored pointer */
+	try { 	
+		/*<
+		 * call function creating box object for struct > 
+		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of ptr in the struct>
+		 */		
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
-		std::list <size_t>::iterator it_offset = offsets_ptr.begin();
-		POINTER_DESCR descr;
-		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) {
-			descr = {*it_offset, 0};
-			set_ptr_descr(object, iter_p, descr);  
+		std::list <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
+		POINTER_DESCR descr; /**< temprorary element for saving offset*/
+		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /**< save all ptr in object */
+			descr = {*it_offset, 0}; /**< save ptr in descriptor */
+			/*<
+			 * call function write descriptor in object 
+			 * first arg - object reference, sec arg - index place in object, thd arg - descriptor
+			 */
+			set_ptr_descr(object, iter_p, descr); 
 		}
 	}
 	catch (...) {

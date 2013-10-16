@@ -1,3 +1,5 @@
+/* models that we need to keep informations about pointers */
+
 #pragma once
 # include <stdlib.h>
 # include <limits.h>
