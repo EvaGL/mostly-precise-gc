@@ -1,4 +1,4 @@
-/****************************************************************************************
+/*************************************************************************************//**
 	* File: boxing.cpp
 	* Description: This file consists code with realiasation of functions described in "boxing.h"
 	* Update: 17/10/13
@@ -24,12 +24,12 @@ void * generic_box_simple () {
 * @brief generation box for arrays with unboxed elements
 * @detailed create the pointer on object with create_unboxed_array function
 * @return the pointer on object
-* @param num of elements
+* @param len - num of elements
 */
 void * generic_box_unboxed_array(size_t len) {
 	/*
 	 * call the function for creating object with unboxed elements
-	 * first arg - num of unboxed elements in array
+	 * len - num of unboxed elements in array
 	 * /
 	return create_unboxed_array(len);
 }
@@ -37,7 +37,7 @@ void * generic_box_unboxed_array(size_t len) {
 /** 
 * @brief generation box for arrays with unboxed elements
 * @detailed create the pointer on object with create_unboxed_array function
-* @param num of elements
+* @param len - num of elements
 * @return the pointer on object
 */
 void * generic_box_boxed_array (size_t len) { 
@@ -51,7 +51,7 @@ void * generic_box_boxed_array (size_t len) {
 /** 
 * @brief generation box for struct
 * @detailed  create the pointer on object with create_generic_object function
-* @param list of pointer offsets in struct, full size of real struct, num of pointers
+* @param offsets_ptr - list of pointer offsets in struct, size - full size of real struct, num_el - num of pointers
 * @return the pointer on object
 */
 void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
@@ -64,8 +64,8 @@ void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t n
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
 		std::list <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
-		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /**< save all pointers in object */
-			descr = {*it_offset, 0}; /**< save pointers in descriptor */
+		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /* save all pointers in object */
+			descr = {*it_offset, 0}; /* save pointers in descriptor */
 			/*
 			 * call function write descriptor in object 
 			 * first arg - object reference, sec arg - index place in object, thd arg - descriptor
