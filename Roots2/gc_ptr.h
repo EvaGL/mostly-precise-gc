@@ -1,4 +1,4 @@
-/****************************************************************************************
+/*************************************************************************************//**
         * File: gc_ptr.h
         * Description: This file describe creating gc_ptr - our pointer
 		* Last modification: 16/10/13
@@ -14,7 +14,6 @@ extern bool new_active; /* global flag, tells where this ptr. False -- stack, tr
 * @class template class gc_ptr
 * @brief the class describes our pointer gc_ptr
 * @detailed template class gc_ptr has two consructors with args and without args
-* @param kind of pointer we need to create(pointer on - what type)
 */
 template <class T> 
 class gc_ptr {
