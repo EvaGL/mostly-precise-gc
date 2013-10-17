@@ -5,5 +5,14 @@
 *****************************************************************************************/
 
 #pragma once
-void go (void *v, bool mark_bit); /*< walk through the obj*/
-void mark_and_sweep (); /*< mark and delete garbage*/
+
+/**
+ \fn go - walks through the objects
+ \brief first arg - pointer on object, sec - mark_bit
+ */
+void go (void *v, bool mark_bit);
+
+/**
+ \fn nark_and_sweep - mark and delete garbage
+ */
+void mark_and_sweep (); 
