@@ -16,7 +16,7 @@ void * generic_box_simple () {
 	/*
 	 * call generic function for creating object in one-word
 	 * first arg - num of pointers descr, sec arg - size(depend from num of pointers descr), thd arg - num words
-	 * /
+	 */
 	return create_generic_object(0, 0, 1); 
 }
 
@@ -30,7 +30,7 @@ void * generic_box_unboxed_array(size_t len) {
 	/*
 	 * call the function for creating object with unboxed elements
 	 * len - num of unboxed elements in array
-	 * /
+	 */
 	return create_unboxed_array(len);
 }
 
