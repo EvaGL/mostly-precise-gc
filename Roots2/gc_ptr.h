@@ -12,7 +12,7 @@ extern bool new_active; /* global flag, tells where this ptr. False -- stack, tr
 
 /**
 * @class template class gc_ptr
-* @brief the class describes our pointer gc_ptr
+* @brief the class describes pointer gc_ptr
 * @detailed template class gc_ptr has two consructors with args and without args
 */
 template <class T> 
