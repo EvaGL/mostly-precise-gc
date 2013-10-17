@@ -34,20 +34,20 @@ void go (void *v, bool mark_bit) {
 		}
 
 		bm->mbit = mark_bit;
-		shell = shell + sizeof(BLOCK_TAG);		
+		shell = (char *)shell + sizeof(BLOCK_TAG);		
 
 		switch (tag->model) {
 			case 1: {
 					for (size_t j = 0; j < bm->size; j++) {
 						void *offsets = shell;
 						size_t n = *((size_t *)offsets);
-						offsets += sizeof(size_t);
+						offsets =(char *)offsets + sizeof(size_t);
 						for (size_t i = 0; i < n; i++) {
-							void *p = v + (*((POINTER_DESCR *)offsets)).offset;
+							void *p = (char *)v + (*((POINTER_DESCR *)offsets)).offset;
 							go(get_next_obj(p), mark_bit);
-							offsets += sizeof(POINTER_DESCR); 
+							offsets =(char *)offsets + sizeof(POINTER_DESCR); 
 						}
-						v = v + tag->size;
+						v = (char *)v + tag->size;
 					}
 				}
 				break;
