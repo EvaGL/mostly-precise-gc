@@ -16,7 +16,7 @@
 void * generic_box_simple () { 
 	/*
 	 * call generic function for creating object in one-word
-	 * first arg - num of ptr descr, sec arg - size(depend from num of ptr descr), thd arg - num words
+	 * first arg - num of pointers descr, sec arg - size(depend from num of pointers descr), thd arg - num words
 	 * /
 	return create_generic_object(0, 0, 1); 
 }
@@ -40,7 +40,7 @@ void * generic_box_unboxed_array(size_t len) {
 * @param num of elements
 */
 void * generic_box_boxed_array (size_t len) { 
-	/*<
+	/*
 	  * call the function for creating object with boxed elements
 	  * first arg - num of boxed elements in array
 	 */	
@@ -50,21 +50,21 @@ void * generic_box_boxed_array (size_t len) {
 /** 
 * @brief generation box for struct
 * @detailed return the pointer on object which have created with create_generic_object function
-* @param list of ptr offsets in struct, full size of real struct, num of ptr
+* @param list of pointer offsets in struct, full size of real struct, num of pointers
 */
 void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
 	void* object; /**< a stored pointer */
 	try { 	
-		/*<
+		/*
 		 * call function creating box object for struct > 
-		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of ptr in the struct>
+		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of pointers in the struct>
 		 */		
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
 		std::list <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
-		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /**< save all ptr in object */
-			descr = {*it_offset, 0}; /**< save ptr in descriptor */
-			/*<
+		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /**< save all pointers in object */
+			descr = {*it_offset, 0}; /**< save pointers in descriptor */
+			/*
 			 * call function write descriptor in object 
 			 * first arg - object reference, sec arg - index place in object, thd arg - descriptor
 			 */
