@@ -23,7 +23,7 @@ public:
 	ptr_list *me; /* list of pointers in this obj*/
 	bool stack_ptr; /* is this ptr on stack*/
 
-	/*	\fn construct gc_ptr()
+	/**	\fn construct gc_ptr()
 		\brief setting ptr on null			
 	*/
 	gc_ptr() {
