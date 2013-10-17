@@ -9,9 +9,8 @@
 #include <cstdio>
 
 /** 
-* @brief generation box for one-word object
+* @brief generation box(special meta-info object) for one-word object
 * @detailed return the pointer on object which have created with create_generic_object function
-* @param null
 */
 void * generic_box_simple () { 
 	/*
@@ -41,8 +40,8 @@ void * generic_box_unboxed_array(size_t len) {
 */
 void * generic_box_boxed_array (size_t len) { 
 	/*
-	  * call the function for creating object with boxed elements
-	  * first arg - num of boxed elements in array
+	 * call the function for creating object with boxed elements
+	 * first arg - num of boxed elements in array
 	 */	
 	return create_boxed_array(len);
 }
