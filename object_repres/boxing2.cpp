@@ -22,7 +22,8 @@ void * generic_box_simple () {
 
 /** 
 * @brief generation box for arrays with unboxed elements
-* @detailed return the pointer on object which have created with create_unboxed_array function
+* @detailed create the pointer on object with create_unboxed_array function
+* @return the pointer on object
 * @param num of elements
 */
 void * generic_box_unboxed_array(size_t len) {
@@ -35,8 +36,9 @@ void * generic_box_unboxed_array(size_t len) {
 
 /** 
 * @brief generation box for arrays with unboxed elements
-* @detailed return the pointer on object which have created with create_unboxed_array function
+* @detailed create the pointer on object with create_unboxed_array function
 * @param num of elements
+* @return the pointer on object
 */
 void * generic_box_boxed_array (size_t len) { 
 	/*
@@ -48,8 +50,9 @@ void * generic_box_boxed_array (size_t len) {
 
 /** 
 * @brief generation box for struct
-* @detailed return the pointer on object which have created with create_generic_object function
+* @detailed  create the pointer on object with create_generic_object function
 * @param list of pointer offsets in struct, full size of real struct, num of pointers
+* @return the pointer on object
 */
 void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
 	void* object; /**< a stored pointer */
