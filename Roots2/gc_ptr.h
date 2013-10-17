@@ -19,9 +19,9 @@ extern bool new_active; /* global flag, tells where this ptr. False -- stack, tr
 template <class T> 
 class gc_ptr {
 public:
-	T* ptr; /* pointer on specified type*/
-	ptr_list *me; /* list of pointers in this obj*/
-	bool stack_ptr; /* is this ptr on stack*/
+	T* ptr; /**< pointer on specified type*/
+	ptr_list *me; /**< list of pointers in this obj*/
+	bool stack_ptr; /**< is this ptr on stack*/
 
 	/**	\fn construct gc_ptr()
 		\brief setting ptr on null			
