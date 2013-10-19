@@ -33,7 +33,7 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 /* setting descriptors*/
 void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 	try {
-		*((POINTER_DESCR*)(object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
+		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Couldn't set descriptor in object.");
 	}		

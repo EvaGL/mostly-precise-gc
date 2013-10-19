@@ -39,9 +39,9 @@ void go (void *v, bool mark_bit) {  /*!< walk and mark throught the objects whic
 		if (bm->mbit == mark_bit) {  /* if it was marked/unmarked before - done*/
 			return;
 		}
-
+		
 		bm->mbit = mark_bit;  /* change if it was not*/
-		shell = shell + sizeof(BLOCK_TAG); /* getting shell - place whith info about offsets(num and offsets)*/	
+		shell = (char *)shell + sizeof(BLOCK_TAG); /* getting shell - place whith info about offsets(num and offsets)*/	
 
 		switch (tag->model) {
 			case 1: {  /* if type of model == 1, it is complex object - struct*/
@@ -54,7 +54,7 @@ void go (void *v, bool mark_bit) {  /*!< walk and mark throught the objects whic
 							go(get_next_obj(p), mark_bit);  /* mark, if we need it*/
 							offsets += sizeof(POINTER_DESCR);   /* get next*/
 						}
-						v = v + tag->size;  /* next*/
+						v = (char *)v + tag->size;  /* next*/
 					}
 				}
 				break;

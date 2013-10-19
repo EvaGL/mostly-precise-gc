@@ -72,8 +72,8 @@ template <class T> T* gc_new (size_t count=1)
 	{
 
 		res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
-		new (res + sizeof(void*) + sizeof(meta<T>)) T;
-		*((size_t*)(res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);
+		new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T;
+		*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);
 		meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);
 
 		if (offsets.size() == 0)
@@ -91,7 +91,7 @@ template <class T> T* gc_new (size_t count=1)
 			std::list <size_t> offsets_ptr;
 			for (size_t i = 0; i < offsets.size(); i++)
 			{
-				offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));
+				offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
 			}
 			if (list_meta_obj.count(typeid(T).name()))
 				m_inf->shell = list_meta_obj[typeid(T).name()];
@@ -103,14 +103,14 @@ template <class T> T* gc_new (size_t count=1)
 		}
 		m_inf->size = count;
 		m_inf->mbit = 0;
-		m_inf->ptr = (T*)(res + sizeof(base_meta*) + sizeof(meta<T>));
+		m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 	}
 	else
 	{
 
 		res = malloc(sizeof(T) * count + sizeof(void *) + sizeof(meta<T>));
-		new (res + sizeof(void*) + sizeof(meta<T>)) T[count];
-		*((size_t*)(res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
+		new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T[count];
+		*((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
 		meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);		
 
 		if (offsets.size() == 0)
@@ -127,7 +127,7 @@ template <class T> T* gc_new (size_t count=1)
 		{
 			std::list <size_t> offsets_ptr;
 			for (size_t i = 0; i < offsets.size() / count; i++)
-				offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));
+				offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
 			if (list_meta_obj.count(typeid(T).name()))
 				m_inf->shell = list_meta_obj[typeid(T).name()];
 			else 
@@ -138,13 +138,13 @@ template <class T> T* gc_new (size_t count=1)
 		}
 		m_inf->size = count;
 		m_inf->mbit = 0;
-		m_inf->ptr = (T*)(res + sizeof(base_meta*) + sizeof(meta<T>));
+		m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 	}
 
-	ptr_in_heap.push_back(res + sizeof(base_meta*) + sizeof(meta<T>));
+	ptr_in_heap.push_back((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 	new_active = false;
 	offsets.clear();
 	pthread_mutex_unlock(&mut);
 	
-	return (T*)(res + sizeof(base_meta*) + sizeof(meta<T>));
+	return (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 }
