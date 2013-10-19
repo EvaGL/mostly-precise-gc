@@ -1,7 +1,7 @@
-/*****************//**
-        * File: boxing2.h
-        * Description: This file describe code in "boxing2.cpp"
-        * Update: 17/10/13
+/************************************************************************************//**
+    * File: boxing2.h
+    * Description: Describes functions of creation boxes for different objects types
+    * Update: 17/10/13
 *****************************************************************************************/
 # pragma once
 # include <stdlib.h>

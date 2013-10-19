@@ -11,19 +11,19 @@
 #include <cstdlib>
 #include <vector>
 
-extern std::vector <void *> ptr_in_heap; /* list of pointers in heap*/
+extern std::vector <void *> ptr_in_heap; /*!< list of pointers in heap*/
 
-extern ptr_list* all_ptr; /* all created pointers*/
+extern ptr_list* all_ptr; /*!< all created pointers*/
 
-inline base_meta* get_meta_inf (void *v) {  /* get the block with meta_inf*/
+inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	return (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
 }
 
-inline void* get_next_obj(void *v) {  /* get next object*/
+inline void* get_next_obj(void *v) {  /*!< get next object*/
 	return reinterpret_cast <void*> (*((size_t *)v));
 }
 
-void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which we can get by walking from roots */
+void go (void *v, bool mark_bit) {  /*!< walk and mark throught the objects which we can get by walking from roots */
 	try {
 		if (v == 0) {
 			return;
@@ -39,9 +39,9 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 		if (bm->mbit == mark_bit) {  /* if it was marked/unmarked before - done*/
 			return;
 		}
-
+		
 		bm->mbit = mark_bit;  /* change if it was not*/
-		shell = shell + sizeof(BLOCK_TAG); /* getting shell - place whith info about offsets(num and offsets)*/	
+		shell = (char *)shell + sizeof(BLOCK_TAG); /* getting shell - place whith info about offsets(num and offsets)*/	
 
 		switch (tag->model) {
 			case 1: {  /* if type of model == 1, it is complex object - struct*/
@@ -54,7 +54,7 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 							go(get_next_obj(p), mark_bit);  /* mark, if we need it*/
 							offsets += sizeof(POINTER_DESCR);   /* get next*/
 						}
-						v = v + tag->size;  /* next*/
+						v = (char *)v + tag->size;  /* next*/
 					}
 				}
 				break;
