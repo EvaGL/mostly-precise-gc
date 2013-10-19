@@ -11,19 +11,19 @@
 #include <cstdlib>
 #include <vector>
 
-extern std::vector <void *> ptr_in_heap; /* list of pointers in heap*/
+extern std::vector <void *> ptr_in_heap; /*!< list of pointers in heap*/
 
-extern ptr_list* all_ptr; /* all created pointers*/
+extern ptr_list* all_ptr; /*!< all created pointers*/
 
-inline base_meta* get_meta_inf (void *v) {  /* get the block with meta_inf*/
+inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	return (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
 }
 
-inline void* get_next_obj(void *v) {  /* get next object*/
+inline void* get_next_obj(void *v) {  /*!< get next object*/
 	return reinterpret_cast <void*> (*((size_t *)v));
 }
 
-void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which we can get by walking from roots */
+void go (void *v, bool mark_bit) {  /*!< walk and mark throught the objects which we can get by walking from roots */
 	try {
 		if (v == 0) {
 			return;
