@@ -1,36 +1,38 @@
 /*************************************************************************************//**
         * File: gc_ptr.h
-        * Description: This file describe creating gc_ptr - our pointer
+        * Description: This file describe smart pointer class gc_ptr
 		* Last modification: 16/10/13
 *****************************************************************************************/
 #pragma once
 #include "collect.h"
 #include <vector>
 
-extern std::vector<void *> offsets; /* a stored ptr on heap*/
-extern bool new_active; /* global flag, tells where this ptr. False -- stack, true -- heap*/
+extern std::vector<void *> offsets; /**< container, using to stored pointers on heap */
+extern bool new_active; /**< global flag, describes current pointer location. 
+						* False -- stack pointer, true -- heap pointer */
 
 /**
-* @class template class gc_ptr
-* @brief the class describes pointer gc_ptr
-* @detailed template class gc_ptr has two consructors with args and without args
+* @class template smart pointer class gc_ptr
+* @brief the class describes smart pointer
+* @detailed template smart pointer class gc_ptr using to represent pointers and 
+* 	override arithmetics and other operations on them.
 */
 template <class T> 
 class gc_ptr {
 public:
 	T* ptr; /**< pointer on specified type*/
 	ptr_list *me; /**< list of pointers in this obj*/
-	bool stack_ptr; /**< is this ptr on stack*/
+	bool stack_ptr; /**< True, if this pointer point on stack, False - otherwise */
 
 	/**	\fn construct gc_ptr()
-		\brief setting ptr on null			
+		\brief setting ptr on null
 	*/
 	gc_ptr() {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true; /* add current addr in ptr_list*/
+			me = inc(this), stack_ptr = true; // add current addr in ptr_list
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this); /* add our ptr in offsets list*/
+			offsets.push_back(this); // add our ptr in offsets list
 			me = 0;
 		}
 		ptr = 0;
