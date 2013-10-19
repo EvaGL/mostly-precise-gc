@@ -1,9 +1,16 @@
+/****************************************************************************************
+        * File: taginfo.cpp
+        * Description: realisation of functions from 'taginfo.h'
+        * Update: 17/10/13
+*****************************************************************************************/
+
+
 #include "taginfo.h"
-# include <assert.h>
+#include <assert.h>
 #include <cstdio>
 #include <cstdlib>
 
-void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
+void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {  /* simple, 1-word object with num 2, struct with num 1*/
 	void  * result = NULL;
 	try {	
 		if (descr_length == 0) {
@@ -22,7 +29,7 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 	return result;
 }
 
-void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
+void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {  /* setting descriptors*/
 	try {
 		*((POINTER_DESCR*)(object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
 	} catch (...) {
@@ -31,7 +38,7 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 	return;
 }
 
-void * create_boxed_array(size_t size) {
+void * create_boxed_array(size_t size) {  /* array of boxed objects*/
 	void * result = NULL;	
 	try {	
 		BLOCK_TAG tag = {TAG_MODEL_3, size, 0};
@@ -43,7 +50,7 @@ void * create_boxed_array(size_t size) {
 	return result;
 }
 
-void * create_unboxed_array(size_t size) {
+void * create_unboxed_array(size_t size) {  /* array of unboxed objects*/
 	void * result = NULL;	
 	try{
 		BLOCK_TAG tag = {TAG_MODEL_4, size, 0};
