@@ -31,9 +31,9 @@ using std::make_pair;
 class base_meta
 {
         public:
-        void *shell; /**< pointer on the box of object*/
+        void *shell; /**< pointer on the box(meta info struct for storing offsets) of object*/
         size_t size; /**< size of object*/
-        bool mbit; /**< mark bit*/        
+        bool mbit; /**< mark bit(garbage or alive) of object*/        
         virtual void del_ptr () = 0; /**< delete meta-ptr*/
         virtual void* get_begin () = 0; /**< get begin of object(pointer on meta)*/
 };
@@ -67,8 +67,7 @@ template <class T> class meta : public base_meta
 
 /**
 * @class gc_new
-* @brief the class for allocating space for gc_ptr and writing some meta in
-* @detailed allocate space and constructing objects
+* @brief the class for allocating space and setting metainf
 */
 template <class T> T* gc_new (size_t count=1)  
 {
@@ -81,14 +80,14 @@ template <class T> T* gc_new (size_t count=1)
                 counter = 0;
         }
 
-        void *res; /* create variable which will be store the result*/
+        void *res; /* create uninitialized object which will be store the result*/
         if (count <= 0)
                 return 0;
 
-        new_active = true;  /* we create gc_ptr in heap */
-        offsets.clear();  /* at the beggining it's clean */
+        new_active = true;  /* set flag that create object in heap */
+        offsets.clear();  /* clean from old offsets for new object */
 
-        if (count == 1) {  /* just pointer on one-word type*/
+        if (count == 1) {  /* case pointer on one-word type*/
                 res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space*/
                 new (res + sizeof(void*) + sizeof(meta<T>)) T;  /* call constructor of heap => call constructor of gc_ptr=> get new struct offsets*/
                 *((size_t*)(res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
@@ -102,7 +101,7 @@ template <class T> T* gc_new (size_t count=1)
                                 list_meta_obj[typeid(T).name()] = m_inf->shell; /* add in list with the same types*/
                         }
                 }
-                else { /*if offset count more than 1, doing the same things except created boxes*/
+                else { /*case offset count more than 1, doing the same things except created boxes*/
                         std::list <size_t> offsets_ptr;  
                         for (size_t i = 0; i < offsets.size(); i++) {  /* getting all offsets_ptrs*/
                                 offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));  // getting ptrs
