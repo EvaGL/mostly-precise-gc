@@ -1,7 +1,7 @@
 /****************************************************************************************
         * File: go.cpp
         * Description: realisation of functions from 'go.h'
-        * Update: 17/10/13
+        * Update: 22/10/13
 *****************************************************************************************/
 
 #include "../Roots2/gc_ptr.h"
@@ -19,19 +19,19 @@ inline base_meta* get_meta_inf (void *v) {  /* get the block with meta_inf*/
 	return (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
 }
 
-inline void* get_next_obj(void *v) {  /* get next object*/
+inline void* get_next_obj(void *v) {  /* get the next object*/
 	return reinterpret_cast <void*> (*((size_t *)v));
 }
 
-void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which we can get by walking from roots */
+void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which we can get by walking from roots*/
 	try {
-		if (v == 0) {
+		if (v == 0) { /* if the pointer on object null just return*/
 			return;
 		}
 
-		base_meta* bm = get_meta_inf(v);
-		void *shell = bm->shell;  /* in shell we saving tag info*/
-		BLOCK_TAG* tag = (BLOCK_TAG *) shell;
+		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
+		void *shell = bm->shell;  /* saving tag info in shell */
+		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* resave shell in tag */
 
 		if (tag->model == 0) {  /* checking tag modell, correct if rang 1,2,4*/
 			throw tag;
@@ -40,21 +40,21 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 			return;
 		}
 
-		bm->mbit = mark_bit;  /* change if it was not*/
-		shell = shell + sizeof(BLOCK_TAG); /* getting shell - place whith info about offsets(num and offsets)*/	
+		bm->mbit = mark_bit;  /* change if it was not marked*/
+		shell = shell + sizeof(BLOCK_TAG); /* get next part shell - offsets(num and offsets)*/	
 
 		switch (tag->model) {
 			case 1: {  /* if type of model == 1, it is complex object - struct*/
 					for (size_t j = 0; j < bm->size; j++) {  
-						void *offsets = shell;  /* getting starting address*/
+						void *offsets = shell;  /* get address of the offsets begin*/
 						size_t n = *((size_t *)offsets);  /* count of offsets*/
 						offsets += sizeof(size_t);  /* get first offset*/
 						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 							void *p = v + (*((POINTER_DESCR *)offsets)).offset;  /* get object by offset*/
 							go(get_next_obj(p), mark_bit);  /* mark, if we need it*/
-							offsets += sizeof(POINTER_DESCR);   /* get next*/
+							offsets += sizeof(POINTER_DESCR);   /* add new offset*/
 						}
-						v = v + tag->size;  /* next*/
+						v = v + tag->size;  /* set pointer om object*/
 					}
 				}
 				break;
@@ -89,7 +89,7 @@ void mark_and_sweep () {
 	std::vector <void*> new_ptr_in_heap;  /* live objects list*/
 
 	for (size_t i = 0; i < ptr_in_heap.size(); i++) {  /* walk in heap*/	
-		base_meta* m_inf = get_meta_inf(ptr_in_heap[i]) ;  /* get inf about mbit of object*/
+		base_meta* m_inf = get_meta_inf(ptr_in_heap[i]) ;  /* get information about mbit of object*/
 		if (m_inf->mbit == 1) {
 			new_ptr_in_heap.push_back(ptr_in_heap[i]);  /* if alive - live*/
 		} else { 
