@@ -158,6 +158,6 @@ template <class T> T* gc_new (size_t count=1)
         offsets.clear();  /* finished - cleaning*/
         pthread_mutex_unlock(&mut);  /* unlocking*/
 
-        return (T*)(res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value*/}
+        return (T*)(res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value*/
 
 }
