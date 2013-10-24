@@ -89,7 +89,7 @@ template <class T> T* gc_new (size_t count=1)
         offsets.clear();  /* clean from old offsets for new object */
         
        /*<allocating space and creating meta data for pointers
-       *case: count == 1 --- pointer on one-word type
+       *case: count == 1 --- pointer on simplle-type object
        *otherwise: other pointers(...)*/
         if (count == 1) {
                 res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
