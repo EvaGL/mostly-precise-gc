@@ -7,9 +7,8 @@
 #include "collect.h"
 #include <vector>
 
-extern std::vector<void *> offsets; /**< container, using to stored pointers on heap */
-extern bool new_active; /**< global flag, describes current pointer location. 
-						* False -- stack pointer, true -- heap pointer */
+extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
+extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 
 /**
 * @class template smart pointer class gc_ptr
@@ -21,7 +20,7 @@ template <class T>
 class gc_ptr {
 public:
 	T* ptr; /**< pointer on specified type*/
-	ptr_list *me; /**< list of pointers in this obj*/
+	ptr_list *me; /**< identifier in pointer list which stored all pointers on stack */
 	bool stack_ptr; /**< True, if this pointer point on stack, False - otherwise */
 
 	/**	\fn construct gc_ptr()
@@ -29,7 +28,7 @@ public:
 	*/
 	gc_ptr() {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true; // add current addr in ptr_list
+			me = inc(this), stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
 		} else {
 			stack_ptr = 0;
 			offsets.push_back(this); // add our ptr in offsets list
