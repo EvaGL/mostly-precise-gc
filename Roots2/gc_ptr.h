@@ -1,36 +1,37 @@
 /*************************************************************************************//**
         * File: gc_ptr.h
-        * Description: This file describe creating gc_ptr - our pointer
+        * Description: This file describe smart pointer class gc_ptr
 		* Last modification: 16/10/13
 *****************************************************************************************/
 #pragma once
 #include "collect.h"
 #include <vector>
 
-extern std::vector<void *> offsets; /* a stored pointers addreses in heap when new_active flag == true else its clear*/
-extern bool new_active; /* global flag. False -- out gc_new, true -- in gc_new*/
+extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
+extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 
 /**
-* @class template class gc_ptr
-* @brief the class describes pointer gc_ptr
-* @detailed template class gc_ptr has two consructors with args and without args
+* @class template smart pointer class gc_ptr
+* @brief the class describes smart pointer
+* @detailed template smart pointer class gc_ptr using to represent pointers and 
+* 	override arithmetics and other operations on them.
 */
 template <class T> 
 class gc_ptr {
 public:
 	T* ptr; /**< pointer on specified type*/
 	ptr_list *me; /**< identifier in pointer list which stored all pointers on stack */
-	bool stack_ptr; /**< if False -- on heap*/
+	bool stack_ptr; /**< True, if this pointer point on stack, False - otherwise */
 
 	/**	\fn construct gc_ptr()
-		\brief setting ptr on null			
+		\brief setting ptr on null
 	*/
 	gc_ptr() {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true; /* add current addr in ptr_list(list of pointers on stack)*/
+			me = inc(this), stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this); /* add  pointer in offsets list*/
+			offsets.push_back(this); // add our ptr in offsets list
 			me = 0;
 		}
 		ptr = 0;

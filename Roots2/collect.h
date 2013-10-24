@@ -38,6 +38,7 @@ struct ptr_list {
 * @detailed add element ?where? list
 * @param head list(list head pointer)
 * @param ptr pointer to add
+* @return updated pointers list
 */
 ptr_list* add (ptr_list *&head, void *ptr);
 
@@ -60,6 +61,7 @@ void clear (ptr_list *v);
 * @brief adds pointer 
 * @detailed adds pointer to stack pointers list(declared in collect.cpp)
 * @param p pointer to be added
+* @return updated stack pointers list
 */
 ptr_list* inc (void *p);
 
