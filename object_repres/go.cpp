@@ -30,8 +30,8 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 		}
 
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
-		void *shell = bm->shell;  /* saving tag info in shell */
-		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* resave shell in tag */
+		void *shell = bm->shell;  /* saving ponter on meta object in shell */
+		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
 
 		if (tag->model == 0) {  /* checking tag modell, correct if rang 1,2,4*/
 			throw tag;
@@ -51,10 +51,10 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 						offsets += sizeof(size_t);  /* get first offset*/
 						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 							void *p = v + (*((POINTER_DESCR *)offsets)).offset;  /* get object by offset*/
-							go(get_next_obj(p), mark_bit);  /* mark, if we need it*/
-							offsets += sizeof(POINTER_DESCR);   /* add new offset*/
+							go(get_next_obj(p), mark_bit);  /* go deeper and mark*/
+							offsets += sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
-						v = v + tag->size;  /* set pointer om object*/
+						v = v + tag->size;  /* get next object */
 					}
 				}
 				break;
@@ -82,7 +82,7 @@ void mark_and_sweep () {
 	printf ("total allocated space before m&s %i\n", mi.uordblks);
 
 	for (ptr_list* root = all_ptr; root != 0; root = root->next) {  /* walk through all pointers in stack*/
-		go (get_next_obj(root->ptr), 1);  /* mark all roots with mbit = 1*/ 
+		go (get_next_obj(root->ptr), 1);  /* mark all available objects with mbit = 1*/ 
 	}
 
 	std::vector <void*> to_erase;  /* garbage list*/
