@@ -93,7 +93,7 @@ template <class T> T* gc_new (size_t count=1)
        *otherwise: other pointers(...)*/
         if (count == 1) {
                 res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
-                new (res + sizeof(void*) + sizeof(meta<T>)) T;  /* call constructor of heap => call constructor of gc_ptr=> get new struct offsets */
+                new (res + sizeof(void*) + sizeof(meta<T>)) T;  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
                 *((size_t*)(res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
                 meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
 
@@ -105,7 +105,7 @@ template <class T> T* gc_new (size_t count=1)
                                 list_meta_obj[typeid(T).name()] = m_inf->shell; /* add in list with the same types */
                         }
                 }
-                else { /*case offset count more than 1, doing the same things except created boxes */
+                else { /*case offset count more than 0, doing the same things except created boxes */
                         std::list <size_t> offsets_ptr;  
                         for (size_t i = 0; i < offsets.size(); i++) {  /* getting all offsets_ptrs */
                                 offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));  /* getting pointers */
