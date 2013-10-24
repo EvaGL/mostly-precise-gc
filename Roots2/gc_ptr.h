@@ -7,8 +7,8 @@
 #include "collect.h"
 #include <vector>
 
-extern std::vector<void *> offsets; /* a stored ptr on heap*/
-extern bool new_active; /* global flag, tells where this ptr. False -- stack, true -- heap*/
+extern std::vector<void *> offsets; /* a stored pointers addreses in heap when new_active flag == true else its clear*/
+extern bool new_active; /* global flag. False -- out gc_new, true -- in gc_new*/
 
 /**
 * @class template class gc_ptr
@@ -19,18 +19,18 @@ template <class T>
 class gc_ptr {
 public:
 	T* ptr; /**< pointer on specified type*/
-	ptr_list *me; /**< list of pointers in this obj*/
-	bool stack_ptr; /**< is this ptr on stack*/
+	ptr_list *me; /**< identifier in pointer list which stored all pointers on stack */
+	bool stack_ptr; /**< if False -- on heap*/
 
 	/**	\fn construct gc_ptr()
 		\brief setting ptr on null			
 	*/
 	gc_ptr() {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true; /* add current addr in ptr_list*/
+			me = inc(this), stack_ptr = true; /* add current addr in ptr_list(list of pointers on stack)*/
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this); /* add our ptr in offsets list*/
+			offsets.push_back(this); /* add  pointer in offsets list*/
 			me = 0;
 		}
 		ptr = 0;
