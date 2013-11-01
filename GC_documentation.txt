@@ -4,7 +4,7 @@
 ex:(необходимые изменение кода для использования GC)
 1.	int* a = new int[5];
 	→
-	gc_ptr<int*> a =  gc_new<int*>(5);
+	gc_ptr<int> a =  gc_new<int>(5);
 2.	struct List {
 		...
 		List* next;
@@ -12,7 +12,7 @@ ex:(необходимые изменение кода для использов
 	→
 	struct List {
 		...
-		gc_ptr<List*> next;
+		gc_ptr<List> next;
 	};
 Механизм поиска рутов:
 1) Внутри gc_new(ф-ия отведения памяти под gc_ptr) выставляется флаг new_active – декларирует место (куча или стек) создания объекта класса gc_ptr.
