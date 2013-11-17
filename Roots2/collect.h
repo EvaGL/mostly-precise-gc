@@ -11,6 +11,7 @@
 #include <cassert>
 #include "../gc_new/gc_new.h"
 #include <cstdio>
+#include "stack.cpp"
 
 /**
 * @struct ptr_list
@@ -63,11 +64,11 @@ void clear (ptr_list *v);
 * @param p pointer to be added
 * @return updated stack pointers list
 */
-ptr_list* inc (void *p);
+void inc (void *p);
 
 /** 
 * @brief deletes pointer
 * @detailed deletes pointer from stack pointers list(declared in collect.cpp)
 * @param me removing pointer
 */
-void dec (ptr_list *me);
+void dec ();

@@ -12,8 +12,7 @@
 #include <vector>
 
 extern std::vector <void *> ptr_in_heap; /*!< list of pointers in heap*/
-
-extern ptr_list* all_ptr; /*!< all created pointers*/
+extern StackMap stack_ptr; /*!< stack pointers*/
 
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	return (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
@@ -81,8 +80,10 @@ void mark_and_sweep () {
 	mi = mallinfo();
 	printf ("total allocated space before m&s %i\n", mi.uordblks);
 
-	for (ptr_list* root = all_ptr; root != 0; root = root->next) {  /* walk through all pointers in stack*/
-		go (get_next_obj(root->ptr), 1);  /* mark all available objects with mbit = 1*/ 
+	StackElement* root = (StackElement*) stack_ptr.get_begin();
+	for(int i = 0; i < stack_ptr.get_count(); i++) { /* walk through all pointers in stack*/
+		root ++;
+		go (get_next_obj(root->addr), 1); /* mark all available objects with mbit = 1*/
 	}
 
 	std::vector <void*> to_erase;  /* garbage list*/
