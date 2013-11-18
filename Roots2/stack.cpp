@@ -21,7 +21,11 @@ public:
 		page_size = length / stackElement_size;
 
 		// allocate memory page
-		map_begin = (struct StackElement*) mmap(sbrk(0), length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if ((map_begin = (struct StackElement*) mmap(sbrk(0), length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
+			perror("\n ERROR: at StackMap::StackMap() --- allocation space failed \n");
+			map_begin = top = end_of_mapped_space = NULL;
+			return;
+		}
 		top = map_begin;
 		end_of_mapped_space = map_begin + page_size;
 	}
