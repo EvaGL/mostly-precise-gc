@@ -4,7 +4,8 @@
 *****************************************************************************************/
 #include "collect.h"
 
-StackMap stack_ptr; //!< stack of stack pointers
+StackMap stack_ptr = StackMap::create_StackMap_instance(); //!< stack of stack pointers
+StackMap* StackMap::instance = NULL;
 
 ptr_list* add (ptr_list *&head, void *ptr)
 {
@@ -41,10 +42,10 @@ void clear (ptr_list *v)
 
 void inc (void *p)
 {
-	stack_ptr.inc(p);
+	stack_ptr.register_stack_root(p);
 }
 
 void dec ()
 {
-	stack_ptr.dec();
+	stack_ptr.delete_stack_root();
 }

@@ -80,11 +80,10 @@ void mark_and_sweep () {
 	mi = mallinfo();
 	printf ("total allocated space before m&s %i\n", mi.uordblks);
 
-	StackElement* root = (StackElement*) stack_ptr.get_begin();
-	for(int i = 0; i < stack_ptr.get_count(); i++) { /* walk through all pointers in stack*/
-		root ++;
-		go (get_next_obj(root->addr), 1); /* mark all available objects with mbit = 1*/
+	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
+		go (get_next_obj(*root), 1); /* mark all available objects with mbit = 1*/
 	}
+
 
 	std::vector <void*> to_erase;  /* garbage list*/
 	std::vector <void*> new_ptr_in_heap;  /* live objects list*/
