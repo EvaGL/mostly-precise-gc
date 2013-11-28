@@ -5,7 +5,6 @@
 #include "collect.h"
 
 StackMap stack_ptr = StackMap::create_StackMap_instance(); //!< stack of stack pointers
-StackMap* StackMap::instance = NULL;
 
 ptr_list* add (ptr_list *&head, void *ptr)
 {

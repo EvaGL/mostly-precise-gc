@@ -47,11 +47,11 @@ void go (void *v, bool mark_bit) {  /* walk and mark throught the objects which 
 					for (size_t j = 0; j < bm->size; j++) {  
 						void *offsets = shell;  /* get address of the offsets begin*/
 						size_t n = *((size_t *)offsets);  /* count of offsets*/
-						offsets += sizeof(size_t);  /* get first offset*/
+						offsets = (char*)offsets + sizeof(size_t);  /* get first offset*/
 						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
-							void *p = v + (*((POINTER_DESCR *)offsets)).offset;  /* get object by offset*/
+							void *p = (char*)v + (*((POINTER_DESCR *)offsets)).offset;  /* get object by offset*/
 							go(get_next_obj(p), mark_bit);  /* go deeper and mark*/
-							offsets += sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
+							offsets = (char*)offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
 						v = (char *)v + tag->size;  /* get next object */
 					}

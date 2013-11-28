@@ -11,7 +11,7 @@
 #include <cassert>
 #include "../gc_new/gc_new.h"
 #include <cstdio>
-#include "stack.cpp"
+#include "stack.h"
 
 /**
 * @struct ptr_list
