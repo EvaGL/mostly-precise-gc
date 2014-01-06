@@ -1,0 +1,2 @@
+LD_LIBRARY_PATH=/home/danya/projects/diploma-new/
+export $LD_LIBRARY_PATH
