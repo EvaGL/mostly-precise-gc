@@ -5,4 +5,5 @@
 #include "../Roots2/collect.h"
 #include "../Roots2/gc_ptr.h"
 #include "../gc_new/gc_new.h"
+#include "../object_repres/mark.h"
 #include <cstdio>

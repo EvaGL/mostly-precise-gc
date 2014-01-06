@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <cstdio>
 #include <cstdlib>
+#include "mark.h"
 
 /* simple, 1-word object with num 2, struct with num 1*/
 void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
@@ -26,6 +27,7 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 		}
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_generic_object.");
+		fflush(stdout);
 	}
 	return result;
 }
@@ -36,6 +38,7 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Couldn't set descriptor in object.");
+		fflush(stdout);
 	}		
 	return;
 }
@@ -48,7 +51,8 @@ void * create_boxed_array(size_t size) {
 		result = malloc (sizeof (BLOCK_TAG) + 1);
 		*(BLOCK_TAG *)result = tag;
 	} catch (...) {
-		printf("UNEXPECTED ERROR! Function create_boxed_array.");	
+		printf("UNEXPECTED ERROR! Function create_boxed_array.");
+		fflush(stdout);	
 	}
 	return result;
 }
@@ -62,6 +66,7 @@ void * create_unboxed_array(size_t size) {
 		*(BLOCK_TAG *)result = tag;
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function create_unboxed_array.");
+		fflush(stdout);
 	}
 	return result;
 }
@@ -90,6 +95,7 @@ PTR_ITERATOR get_iterator (void * object) {
 	}
 	catch(...) {
 		printf("UNEXPECTED ERROR! Function get_iterator.");
+		fflush(stdout);
 	}
 		return res_ptr;
 }
@@ -120,6 +126,7 @@ void * get_ptr (void  * object, size_t index) {
 		}
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function get_ptr.");
+		fflush(stdout);
 	}
 }
 
@@ -155,6 +162,7 @@ void * next_ptr (PTR_ITERATOR * iterator) {
 		}
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function next_ptr.");
+		fflush(stdout);
 	}
 	return res_ptr;
 }

@@ -7,21 +7,19 @@
 #include "collect.h"
 #include <vector>
 
-extern std::vector<void *> offsets; /**< container, using to stored pointers on heap */
-extern bool new_active; /**< global flag, describes current pointer location. 
-						* False -- stack pointer, true -- heap pointer */
-
+//extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
+extern PointerList * offsets;
+extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 /**
-* @class template smart pointer class gc_ptr
-* @brief the class describes smart pointer
-* @detailed template smart pointer class gc_ptr using to represent pointers and 
+* \class template smart pointer class gc_ptr
+* \brief the class describes smart pointer
+* \detailed template smart pointer class gc_ptr using to represent pointers and 
 * 	override arithmetics and other operations on them.
 */
 template <class T> 
 class gc_ptr {
 public:
 	T* ptr; /**< pointer on specified type*/
-	ptr_list *me; /**< list of pointers in this obj*/
 	bool stack_ptr; /**< True, if this pointer point on stack, False - otherwise */
 
 	/**	\fn construct gc_ptr()
@@ -29,11 +27,10 @@ public:
 	*/
 	gc_ptr() {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true; // add current addr in ptr_list
+			inc(this); stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this); // add our ptr in offsets list
-			me = 0;
+			offsets->push_back(this); // add our ptr in offsets list
 		}
 		ptr = 0;
 	}
@@ -43,11 +40,10 @@ public:
 	*/
 	gc_ptr(T* p) {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true;
+			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this);
-			me = 0;
+			offsets->push_back(this);
 		}
 		ptr = p; 
 	}
@@ -57,11 +53,10 @@ public:
 	*/
 	gc_ptr(const gc_ptr <T> &p) {
 		if (!new_active) {
-			me = inc(this), stack_ptr = true;
+			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this);
-			me = 0;
+			offsets->push_back(this);
 		}
 		ptr = p.ptr;
 	}
@@ -70,7 +65,7 @@ public:
 	*/
 	~gc_ptr() {
 		if (stack_ptr) {
-			dec(me);
+			dec();
 		}
 	}
 
