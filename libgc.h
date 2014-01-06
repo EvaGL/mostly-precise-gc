@@ -6,7 +6,7 @@
 #include "sources/go.h"
 #include "sources/stack.h"
 #include "sources/taginfo.h"
-#include "bib/mark.h"
+#include "dlmalloc/mark.h"
 
 #include <cstdio>
 #include <pthread.h>

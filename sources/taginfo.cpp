@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <cstdio>
 #include <cstdlib>
-#include "../bib/mark.h"
+#include "../dlmalloc/mark.h"
 
 /* simple, 1-word object with num 2, struct with num 1*/
 void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
