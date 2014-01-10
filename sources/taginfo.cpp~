@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <cstdio>
 #include <cstdlib>
-#include "../dlmalloc/mark.h"
+#include "../bib/mark.h"
 #include <sys/mman.h>
 #include <unistd.h>
 

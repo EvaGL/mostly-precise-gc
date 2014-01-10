@@ -7,6 +7,8 @@
 #include "collect.h"
 #include <vector>
 
+#define DEBUGE_MODE false
+
 //extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
 extern PointerList * offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
@@ -26,6 +28,10 @@ public:
 		\brief setting ptr on null
 	*/
 	gc_ptr() {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr()");
+			fflush(stdout);
+		}
 		if (!new_active) {
 			inc(this); stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
 		} else {
@@ -33,12 +39,20 @@ public:
 			offsets->push_back(this); // add our ptr in offsets list
 		}
 		ptr = 0;
+		if (DEBUGE_MODE) {
+			printf(" NULL pointer .. ends\n");
+			fflush(stdout);
+		}
 	}
 
 	/**	\fn construct gc_ptr(int* p)
 		\brief setting  pointer pointers on p pointer type of T 			
 	*/
 	gc_ptr(T* p) {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr(T* p) ");
+			fflush(stdout);
+		}
 		if (!new_active) {
 			inc(this), stack_ptr = true;
 		} else {
@@ -46,12 +60,20 @@ public:
 			offsets->push_back(this);
 		}
 		ptr = p; 
+		if (DEBUGE_MODE) {
+			printf(" pointer %p.. ends\n", p);
+			fflush(stdout);
+		}
 	}
 
 	/**	\fn construct gc_ptr(const gc_ptr<int> &p)
 		\brief setting pointer on given adress type of T 			
 	*/
 	gc_ptr(const gc_ptr <T> &p) {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr(const ...)");
+			fflush(stdout);
+		}
 		if (!new_active) {
 			inc(this), stack_ptr = true;
 		} else {
@@ -59,6 +81,10 @@ public:
 			offsets->push_back(this);
 		}
 		ptr = p.ptr;
+		if (DEBUGE_MODE) {
+			printf("pointer %p ...end \n", ptr);
+			fflush(stdout);
+		}
 	}
 	/**	\fn destructor gc_ptr()
 		\brief delete current gc_ptr from special ptr_list  			

@@ -15,6 +15,7 @@ StackMap::StackMap(size_t length1,
 		):  length(length1) {
 	if (DEBUG_MODE) {
 		printf("StackMap::StackMap(size_t length1,...\n");
+		fflush(stdout);
 	}
 	StackMap::instance = this;
 	stackElement_size = sizeof(struct StackElement);
@@ -29,13 +30,13 @@ StackMap::StackMap(size_t length1,
 		add_page_parameter = add_page_parameter1;
 
 	// allocate memory page
-	map_begin = (struct StackElement*) mmap(sbrk(0), length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	map_begin = (struct StackElement*) mmap(0, length, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	assert(map_begin != MAP_FAILED);
 	top = map_begin;
 	end_of_mapped_space = map_begin + page_size;
 	if (DEBUG_MODE) {
-		printf("StackMap: allocate first memory page: ");
-		assert(map_begin != MAP_FAILED);
-		printf("Done!\n");
+		printf("StackMap: allocate first memory page: %p\n", map_begin);
+		fflush(stdout);
 	}
 }
 
@@ -44,8 +45,8 @@ StackMap StackMap::create_StackMap_instance(
 		size_t length1
 		) {
 	if (DEBUG_MODE) {
-		printf("StackMap StackMap::create_StackMap_instance(");
-		printf("Done!\n");
+		printf("StackMap StackMap::create_StackMap_instance(...\n");
+		fflush(stdout);
 	}
 	if (StackMap::instance) {
 		return * StackMap::instance;
@@ -53,17 +54,18 @@ StackMap StackMap::create_StackMap_instance(
 	return StackMap(length1, free_page_parameter1, add_page_parameter1);
 }
 
-void StackMap::register_stack_root(void* newAddr) {
+void StackMap::register_stack_root(void * newAddr) {
 	if (DEBUG_MODE) {
 		printf("void StackMap::register_stack_root(void* newAddr) {\n");
+		fflush(stdout);
 	}
 	if (top + add_page_parameter == end_of_mapped_space) {
 		// mmap one more memory page
 		end_of_mapped_space = (struct StackElement *) mmap(end_of_mapped_space, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		assert(end_of_mapped_space != MAP_FAILED);
 		if (DEBUG_MODE) {
-			printf("StackMap: allocate one more memory page:  ");
-			assert(end_of_mapped_space != MAP_FAILED);
-			printf("Done!\n");
+			printf("StackMap: allocate one more memory page: ... %p -- new end ... ", (end_of_mapped_space + page_size));
+			fflush(stdout);
 		}
 		end_of_mapped_space += page_size;
 	} 
@@ -78,18 +80,17 @@ void StackMap::register_stack_root(void* newAddr) {
 void StackMap::delete_stack_root() {
 	if (DEBUG_MODE) {
 		printf("void StackMap::delete_stack_root() {\n");
+		fflush(stdout);
 	}
 	top --;
 	if (top + free_page_parameter < end_of_mapped_space)
 	{
 		if (munmap(end_of_mapped_space, length) == 0) {
 			end_of_mapped_space -= page_size;
-			if (DEBUG_MODE) {
-				assert(end_of_mapped_space > map_begin);
-			}
+			assert(end_of_mapped_space > map_begin);
 		} else if (DEBUG_MODE) {
 			printf("StackMap: WARNING: memory page cannot be free ?!? \n");
-			exit(1);
+			fflush(stdout);
 		}
 	}
 	if (DEBUG_MODE) {
@@ -101,6 +102,7 @@ void StackMap::delete_stack_root() {
 void StackMap::set_length(size_t new_size) {
 	if (DEBUG_MODE) {
 		printf("void StackMap::set_length(size_t new_size) {\n");
+		fflush(stdout);
 	}
 	length = new_size;
 	page_size = length / stackElement_size;
@@ -109,6 +111,7 @@ void StackMap::set_length(size_t new_size) {
 size_t StackMap::get_length() {
 	if (DEBUG_MODE) {
 		printf("size_t StackMap::get_length()\n");
+		fflush(stdout);
 	}
 	return length;
 }
@@ -116,6 +119,7 @@ size_t StackMap::get_length() {
 void StackMap::set_page_size(int new_page_size) {
 	if (DEBUG_MODE) {
 		printf("void StackMap::set_page_size(int new_page_size) {{\n");
+		fflush(stdout);
 	}
 	page_size = new_page_size;
 	length = page_size * stackElement_size;
@@ -124,6 +128,7 @@ void StackMap::set_page_size(int new_page_size) {
 Iterator StackMap::begin(){
 	if (DEBUG_MODE) {
 		printf("Iterator StackMap::begin(){\n");
+		fflush(stdout);
 	}
 	return Iterator(map_begin + 1);
 }
@@ -131,6 +136,7 @@ Iterator StackMap::begin(){
 Iterator StackMap::end(){
 	if (DEBUG_MODE) {
 		printf("Iterator StackMap::end(){\n");
+		fflush(stdout);
 	}
 	return Iterator(top);
 }

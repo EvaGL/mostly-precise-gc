@@ -6296,35 +6296,36 @@ DLMALLOC_EXPORT size_t get_mark(void* pointer) {
 }
 
 DLMALLOC_EXPORT void sweep() {
-  printf (" \t sweep begin \t ");
-  fflush(stdout);
+  // printf (" \nsweep begin ");
+  // fflush(stdout);
   mstate m = gm;
   if (is_initialized(m)) {
-    printf (" \t mstate is initialized \t ");
-    fflush(stdout);
+    // printf (" mstate is initialized ");
+    // fflush(stdout);
     msegmentptr s = &m->seg;
     while (s != 0) {
-      printf (" \t next msegmentptr \t ");
-      fflush(stdout);
-//      perror("new msegmantptr\n");
+      // printf (" NEWmsegmentptr ");
+      // fflush(stdout);
       mchunkptr q = align_as_chunk(s->base);
       while (segment_holds(s, q) &&
              q < m->top && q->head != FENCEPOST_HEAD) {
-        printf(" chunk: %p ", q);
-        fflush(stdout);
+        // printf(" chunk: %p ", q);
+        // fflush(stdout);
         if (!flag4inuse(q) && is_inuse(q)) {
-            free(chunk2mem(q));
-            printf(" free that chunk! ", q);
+            // free(chunk2mem(q));
+            // printf(" free that chunk! %p ", q);
             fflush(stdout);
         } 
         clear_flag4(q);
         q = next_chunk(q);
       }
-//      perror("end with chunks, next msegmantptr\n");
+      // printf (" end with chunks, next msegmantptr ");
+      // fflush(stdout);
       s = s->next;
-      printf (" \t %p \t ", s);
-      fflush(stdout);
+      // printf (" %p ", s);
+      // fflush(stdout);
     }
   }
-//  perror("sweep_ends:\n");
+  // printf (" end sweep \n");
+  // fflush(stdout);
 }
