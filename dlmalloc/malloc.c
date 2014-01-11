@@ -6296,8 +6296,9 @@ DLMALLOC_EXPORT size_t get_mark(void* pointer) {
 }
 
 DLMALLOC_EXPORT void sweep() {
-  // printf (" \nsweep begin ");
-  // fflush(stdout);
+  printf ("sweep begin ... ");
+  fflush(stdout);
+  // size_t count = 0; //< count of freed chunk
   mstate m = gm;
   if (is_initialized(m)) {
     // printf (" mstate is initialized ");
@@ -6312,9 +6313,10 @@ DLMALLOC_EXPORT void sweep() {
         // printf(" chunk: %p ", q);
         // fflush(stdout);
         if (!flag4inuse(q) && is_inuse(q)) {
-            // free(chunk2mem(q));
+            free(chunk2mem(q));
+            // count++;
             // printf(" free that chunk! %p ", q);
-            fflush(stdout);
+            // fflush(stdout);
         } 
         clear_flag4(q);
         q = next_chunk(q);
@@ -6326,6 +6328,7 @@ DLMALLOC_EXPORT void sweep() {
       // fflush(stdout);
     }
   }
-  // printf (" end sweep \n");
-  // fflush(stdout);
+  // printf ("%zu chunks are freed\n", count);
+  printf ("end\t");
+  fflush(stdout);
 }

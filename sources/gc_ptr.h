@@ -8,7 +8,7 @@
 #include <cstdio>
 #include "PointerList.h"
 
-#define DEBUGE_MODE false
+// #define DEBUGE_MODE false
 
 extern PointerList * offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
