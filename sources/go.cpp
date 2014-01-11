@@ -19,8 +19,16 @@ extern StackMap stack_ptr;
 extern PointerList * offsets;
 
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
+//	if (DEBUGE_MODE) {
+		printf("in get_meta_inf %p ", v);
+		fflush(stdout);
+//	}
 	base_meta* res = (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
-	mark(res);
+//	if (DEBUGE_MODE) {
+		printf("end\n");
+		fflush(stdout);
+//	}
+	//mark(res);
 	return res;
 }
 
@@ -44,13 +52,12 @@ void go (void * v, bool mark_bit) {
 			fflush(stdout);
 		}
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
+
+		if (get_mark(bm) != 0 || get_mark(v) != 0) { /* if marked --- return*/
 			if (DEBUGE_MODE) {
 				printf(" already marked \n ");
 				fflush(stdout);
 			}
-
-		if (get_mark(bm) != 0) { /* if marked --- return*/
-
 			return;
 		}
 		if (DEBUGE_MODE) {
@@ -64,7 +71,7 @@ void go (void * v, bool mark_bit) {
 		}
 		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
 		if (DEBUGE_MODE) {
-			printf(" 4:%p ", tag);
+			printf(" 4: %p ", tag);
 			fflush(stdout);
 		}
 		if (tag->model == 0) {  /* checking tag modell, correct if rang 1,2,4*/
@@ -87,13 +94,13 @@ void go (void * v, bool mark_bit) {
 					for (size_t j = 0; j < bm->size; j++) { 
 						void * this_offsets = shell;  /* get address of the offsets begin*/
 						size_t n = *((size_t *)this_offsets);  /* count of offsets*/
-						this_offsets = (char*)this_offsets + sizeof(size_t);  /* get first offset*/
+						this_offsets = (char *)this_offsets + sizeof(size_t);  /* get first offset*/
 						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 							void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
 							if (p) {
 								go(get_next_obj(p), mark_bit);  /* go deeper and mark*/
 							}
-							this_offsets = (char*)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
+							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
 						v = (char *)v + tag->size;  /* get next object */
 					}

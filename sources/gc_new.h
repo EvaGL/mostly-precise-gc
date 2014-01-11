@@ -72,7 +72,7 @@ template <class T> T* gc_new (size_t count=1)
     while (pthread_mutex_trylock(&mut)!=0){};  /* trying to lock */
 
     counter += sizeof(T);  /* num of space that we used ++ */
-    if (counter > 500) {/* if occupated place more than 50000000 lets start to collect */
+    if (counter > 5000000) {/* if occupated place more than 50000000 lets start to collect */
         mark_and_sweep();
         counter = 0;
     }
