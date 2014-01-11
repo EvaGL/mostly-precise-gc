@@ -1,9 +1,7 @@
 #include "stack.h"
+#include <stdio.h>
 #include <sys/mman.h>
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
 
 #define DEBUG_MODE false
 

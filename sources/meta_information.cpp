@@ -1,4 +1,7 @@
 #include "meta_information.h"
+#include <sys/mman.h>
+#include <assert.h>
+#include <string.h>
 
 struct ClassesNamesPull {
     void * pullBegin;

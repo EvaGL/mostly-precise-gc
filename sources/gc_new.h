@@ -6,28 +6,19 @@
 #pragma once
 #include <cstdio>
 #include <pthread.h>
-#include <vector>
 #include "go.h"
 #include "boxing2.h"
 #include <typeinfo>
-#include <unordered_map>
-#include <string>
 #include "meta_information.h"
 #include "PointerList.h"
 
 #define DEBUGE_MODE false
 
-extern MetaInformation * classMeta;
 extern pthread_mutex_t mut;  
 extern bool new_active;
 extern size_t counter;
-extern "C" {
-    void mark(void*);
-}
-
-using std::make_pair;
-
 extern PointerList * offsets;
+extern MetaInformation * classMeta;
 
 /**
 * @class meta information

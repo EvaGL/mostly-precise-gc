@@ -4,17 +4,13 @@
         * Update: 22/10/13
 *****************************************************************************************/
 
-#include "gc_ptr.h"
 #include "taginfo.h"
 #include "gc_new.h"
-#include <stdio.h>
-#include <vector>
 #include "stack.h"
 #include "PointerList.h"
 
 extern "C" {
 	void mark(void*);
-	void unmark(void*);
 	size_t get_mark(void*);
 	void sweep();
 }

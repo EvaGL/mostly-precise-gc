@@ -1,8 +1,4 @@
 #pragma once
-#include <sys/mman.h>
-#include <assert.h>
-#include <string.h>
-#include <unistd.h>
 
 struct MetaInformation {
     void * name; // hash key (type name)
