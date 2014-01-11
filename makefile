@@ -1,4 +1,4 @@
-SOURCE=sources/boxing2.cpp sources/collect.cpp sources/gc_new.cpp sources/go.cpp sources/stack.cpp sources/taginfo.cpp sources/meta_information.cpp
+SOURCE=sources/boxing2.cpp sources/collect.cpp sources/gc_new.cpp sources/go.cpp sources/stack.cpp sources/taginfo.cpp sources/meta_information.cpp sources/PointerList.cpp
 
 all: gclib malloc
 #	g++ -shared -o libgc.so bib/malloc.o *.o -lm

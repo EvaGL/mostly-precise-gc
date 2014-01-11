@@ -5,11 +5,11 @@
 *****************************************************************************************/
 #pragma once
 #include "collect.h"
-#include <vector>
+#include <cstdio>
+#include "PointerList.h"
 
 #define DEBUGE_MODE false
 
-//extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
 extern PointerList * offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 /**
@@ -33,10 +33,12 @@ public:
 			fflush(stdout);
 		}
 		if (!new_active) {
-			inc(this); stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
+			// add current addr in ptr_list (list of pointers on stack)
+			inc(this); stack_ptr = true;
 		} else {
+			// add our ptr in offsets list
 			stack_ptr = 0;
-			offsets->push_back(this); // add our ptr in offsets list
+			offsets->push_back(this); 
 		}
 		ptr = 0;
 		if (DEBUGE_MODE) {

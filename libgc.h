@@ -6,6 +6,7 @@
 #include "sources/go.h"
 #include "sources/stack.h"
 #include "sources/taginfo.h"
+#include "sources/PointerList.h"
 #include "dlmalloc/mark.h"
 
 #include <cstdio>

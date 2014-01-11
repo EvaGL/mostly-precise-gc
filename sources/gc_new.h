@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <string>
 #include "meta_information.h"
+#include "PointerList.h"
 
 #define DEBUGE_MODE false
 
@@ -26,68 +27,7 @@ extern "C" {
 
 using std::make_pair;
 
-struct PointerList;
 extern PointerList * offsets;
-struct PointerList {
-    void * pointer;
-    PointerList * next;
-
-    void markAll () {
-        PointerList * temp = offsets;
-        while (temp != NULL) {
-            mark(temp);
-            mark(&temp);
-            mark(&temp->pointer);
-            if (temp->pointer) {
-                mark(temp->pointer);
-            }
-            temp = temp->next;
-        }
-    }
-
-    void addElemet (void * ptr) {
-        PointerList * temp = (PointerList *) malloc(sizeof(PointerList));
-        temp->pointer = ptr;
-        temp->next = offsets;
-        offsets = temp;
-    }
-
-    void push_back (void * ptr) {
-        PointerList * newElement = (PointerList *) malloc(sizeof(PointerList)), * temp = offsets;
-        newElement->pointer = ptr;
-        newElement->next = NULL;
-        if (temp == NULL) {
-            offsets = newElement;
-            return;
-        }
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
-        temp->next = newElement;
-    }
-
-    void clear () {
-        offsets = NULL;
-    }
-
-    size_t size () {
-        PointerList * temp = offsets;
-        int result = 0;
-        while (temp != NULL) {
-            result++;
-            temp = temp->next;
-        }
-        return result;
-    }
-
-    void * getElement (int number) {
-        PointerList * temp = offsets;
-        for (int i = 0; i < number; i++, temp = temp->next) {
-            if (!temp) return NULL;
-        }
-        return temp->pointer;
-    }
-};
 
 /**
 * @class meta information
