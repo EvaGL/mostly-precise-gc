@@ -1,16 +1,16 @@
 SOURCE=sources/boxing2.cpp sources/collect.cpp sources/gc_new.cpp sources/go.cpp sources/stack.cpp sources/taginfo.cpp sources/meta_information.cpp sources/PointerList.cpp
+CC=gcc
+COMPIL_OPIONS=-shared -lm -o
 
 all: gclib malloc
-#	g++ -shared -o libgc.so bib/malloc.o *.o -lm
-#	ls -G *.o bib/malloc.o -o libgc.so
-	g++ -shared -o libgc.so *.o -lm
+	$(CC) *.o $(COMPIL_OPIONS) libgc.so
 	rm -rf *.o
 
 malloc:
-	gcc -fPIC -c dlmalloc/malloc.c
+	$(CC) -fPIC -c dlmalloc/malloc.c
 
 gclib: $(SOURCE)
-	g++ -std=c++11 -c -fPIC $(SOURCE)
+	$(CC) -std=c++11 -fPIC -c $(SOURCE)
 
 clean:
-	rm -rf *.o libgc.so
+	rm -rf libgc.so

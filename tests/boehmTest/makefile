@@ -1,9 +1,11 @@
 SOURCE=b.cpp
+CPPC=g++
+LOAD_LIBRARY=-L ../../ -l gc -l pthread
 
 all: output
 
 output: $(SOURCE)
-	g++ -std=c++11 $(SOURCE)  -L ../../ -l gc -l pthread -o output
+	$(CPPC) -std=c++11 $(SOURCE) $(LOAD_LIBRARY) -o output
 
 clean:
 	rm -rf output
