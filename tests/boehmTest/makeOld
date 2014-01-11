@@ -1,8 +1,0 @@
-all: output
-
-output:
-		g++ ../../bib/malloc.o -std=c++11 ../../sources/taginfo.cpp ../../sources/boxing2.cpp ../../sources/go.cpp ../../sources/collect.cpp \
-		../../sources/stack.cpp ../../sources/gc_new.cpp b.cpp -O0 -lpthread -o output
-
-clean:
-	rm -rf *o output
