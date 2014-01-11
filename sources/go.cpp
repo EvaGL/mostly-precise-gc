@@ -19,15 +19,15 @@ extern StackMap stack_ptr;
 extern PointerList * offsets;
 
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
-//	if (DEBUGE_MODE) {
+	if (DEBUGE_MODE) {
 		printf("in get_meta_inf %p ", v);
 		fflush(stdout);
-//	}
+	}
 	base_meta* res = (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
-//	if (DEBUGE_MODE) {
+	if (DEBUGE_MODE) {
 		printf("end\n");
 		fflush(stdout);
-//	}
+	}
 	//mark(res);
 	return res;
 }
