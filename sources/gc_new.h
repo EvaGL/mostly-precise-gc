@@ -66,13 +66,13 @@ template <class T> class meta : public base_meta
 template <class T> T* gc_new (size_t count=1)  
 {
     if (DEBUGE_MODE) {
-        printf("gc_new starts\n");
+        printf("gc_new starts class %s\n",typeid(T).name());
         fflush(stdout);
     }
-    while (pthread_mutex_trylock(&mut)!=0){};  /* trying to lock */
+    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
 
     counter += sizeof(T);  /* num of space that we used ++ */
-    if (counter > 5000000) {/* if occupated place more than 50000000 lets start to collect */
+    if (counter > 5000000) {/* if occupated place more than 5000000 lets start to collect */
         mark_and_sweep();
         counter = 0;
     }
@@ -104,8 +104,14 @@ template <class T> T* gc_new (size_t count=1)
                 fflush(stdout);
             }
             if (contains(classMeta, typeid(T).name())) {
+                if (DEBUGE_MODE) {
+                    printf("contains meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name()); 
             } else { /*if doesn't */
+                if (DEBUGE_MODE) {
+                    printf("new meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = generic_box_simple (); /* create new type - box, save in shell */
                 addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
             }
@@ -123,21 +129,18 @@ template <class T> T* gc_new (size_t count=1)
                 offsets_ptr.push_front(reinterpret_cast <size_t> (offsets->getElement(i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));  /* getting pointers */
             }
             if (DEBUGE_MODE) {
-                fflush(stdout);
                 printf("after for %s\n", typeid(T).name());
                 fflush(stdout);
             }
             if (contains(classMeta, typeid(T).name())) {
                 if (DEBUGE_MODE) {
-                    printf("if-1\n");
-                    fflush(stdout);
-                }               
+                    printf("contains meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
             } else {
                 if (DEBUGE_MODE) {
-                    printf("else-1\n");
-                    fflush(stdout);
-                }                
+                    printf("create meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count); /*create new box and save pointer in shell */
                 if (DEBUGE_MODE) {
                     printf("after m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count);\n");
@@ -173,19 +176,41 @@ template <class T> T* gc_new (size_t count=1)
         }
 
         if (offsets->size() == 0) {
+            if (DEBUGE_MODE) {
+                printf("unboxed array\n");
+                fflush(stdout);
+            }
+ 
             if (contains(classMeta, typeid(T).name())) {
+                if (DEBUGE_MODE) {
+                    printf("contains meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
             } else {
+                if (DEBUGE_MODE) {
+                    printf("create meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = generic_box_unboxed_array (count);
                 addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
             }
         } else {
+            if (DEBUGE_MODE) {
+                printf("box struct\n");
+                fflush(stdout);
+            }
+
             std::list <size_t> offsets_ptr;
             for (size_t i = 0; i < offsets->size() / count; i++)
                 offsets_ptr.push_front(reinterpret_cast <size_t> (offsets->getElement(i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
             if (contains(classMeta, typeid(T).name())) {
+                if (DEBUGE_MODE) {
+                    printf("contains meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
             } else {
+                if (DEBUGE_MODE) {
+                    printf("create meta for class %s\n", typeid(T).name());
+                }
                 m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count);
                 addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
             }

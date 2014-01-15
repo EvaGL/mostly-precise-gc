@@ -6305,7 +6305,7 @@ DLMALLOC_EXPORT size_t sweep() {
       mchunkptr q = align_as_chunk(s->base);
       while (segment_holds(s, q) &&
              q < m->top && q->head != FENCEPOST_HEAD) {
-        printf("chunk: %p\n", q);
+        // printf("chunk: %p\n", q);
         if (!flag4inuse(q) && is_inuse(q)) {
             free(chunk2mem(q));
             // printf("free that chunk\n");

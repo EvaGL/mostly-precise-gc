@@ -28,7 +28,6 @@ inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 		printf("end\n");
 		fflush(stdout);
 	}
-	//mark(res);
 	return res;
 }
 
@@ -91,6 +90,10 @@ void go (void * v, bool mark_bit) {
 
 		switch (tag->model) {
 			case 1: {  /* if type of model == 1, it is complex object - struct*/
+					if (DEBUGE_MODE) {
+						printf(" tag model 1 ");
+						fflush(stdout);
+					}
 					for (size_t j = 0; j < bm->size; j++) { 
 						void * this_offsets = shell;  /* get address of the offsets begin*/
 						size_t n = *((size_t *)this_offsets);  /* count of offsets*/
