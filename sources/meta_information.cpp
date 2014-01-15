@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <stdio.h>
+
 struct ClassesNamesPull {
     void * pullBegin;
     void * pullEnd;
@@ -41,7 +43,8 @@ MetaInformation * classMeta = NULL;
 int contains (MetaInformation * meta, const char * str) {
     MetaInformation * temp = meta;
     while (temp != NULL) {
-        if (memcmp(&(temp->name), str, strlen(str))) {
+        char * metaName = reinterpret_cast<char *>(temp->name);
+        if (strlen(str) == strlen(metaName) && !strcmp(metaName, str)) {
             return 1;
         }
         temp = temp->next;
@@ -52,7 +55,8 @@ int contains (MetaInformation * meta, const char * str) {
 void * getClassMetaPointer (MetaInformation * meta, const char * str) {
     MetaInformation * temp = meta;
     while (temp != NULL) {
-        if (memcmp(&(temp->name), str, strlen(str))) {
+        char * metaName = reinterpret_cast<char *>(temp->name);
+        if (strlen(str) == strlen(metaName) && !strcmp(metaName, str)) {
             return temp->pointer;
         }
         temp = temp->next;
