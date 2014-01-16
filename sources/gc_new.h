@@ -74,7 +74,7 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
 //    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
 
     counter += sizeof(T);  /* num of space that we used ++ */
-    if (counter > 5000000 && nesting_level == 0) {/* if occupated place more than 5000000 lets start to collect */
+    if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
         mark_and_sweep();
         counter = 0;
     }

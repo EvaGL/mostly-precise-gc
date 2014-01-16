@@ -10,9 +10,10 @@
 #include "PointerList.h"
 
 extern "C" {
-	void mark(void*);
-	size_t get_mark(void*);
-	void sweep();
+	void mark (void*);
+	size_t get_mark (void*);
+	void sweep (void);
+	void printDlMallocInfo (void);
 }
 
 extern StackMap stack_ptr;
@@ -130,6 +131,7 @@ void go (void * v, bool mark_bit) {
 }
 
 void mark_and_sweep () {
+	printf("before m&s "); printDlMallocInfo();
 	if (DEBUGE_MODE) {
 		printf("in mark_and_sweep\n");
 		fflush(stdout);
@@ -150,4 +152,5 @@ void mark_and_sweep () {
 		printf("end sweep; end mark_and_sweep\n");
 		fflush(stdout);
 	}
+	printf("after m&s "); printDlMallocInfo();
 }

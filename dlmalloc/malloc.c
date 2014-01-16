@@ -6321,3 +6321,10 @@ DLMALLOC_EXPORT size_t sweep() {
   // printf ("end\n");
   // fflush(stdout);
 }
+
+void printDlMallocInfo (void) {
+  struct mallinfo ml = dlmallinfo();
+  printf( "dlmalloc info: \n\tnumber of free chunks: %zu \n\tmaximum total allocated space: %zu \n\ttotal allocated space: %zu \n\ttotal free space: %zu\n",
+    ml.ordblks, ml.usmblks, ml.uordblks, ml.fordblks
+    );
+}
