@@ -87,8 +87,8 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
     new_active = true;  /* set flag that object creates(allocates) in heap */
 
     nesting_level++;
-    PointerList * temp = copyPointerList(offsets); /* save previous offsets in temporary object */
-    offsets = clearPointerList(offsets); /* free memory occupied by offsets */
+    PointerList * temp = offsets; /* save previous level offsets in temporary object */
+    offsets = NULL;
     
     /*<allocating space and creating meta data for pointers
     *case: count == 1 --- pointer on simplle-type object
@@ -227,9 +227,9 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
 
     new_active = false;  
     
-    offsets = clearPointerList(offsets); /* finished - cleaning */
-    offsets = copyPointerList(temp); /* restore previous gc_new level offsets */
-    temp = clearPointerList(temp); /* free memory, occupied by temp */
+    offsets = clearPointerList(offsets); /* free memory, occupied by offsets */
+    offsets = temp; /* restore previous level offsets */
+    temp = NULL;
     nesting_level--;
 
 //    pthread_mutex_unlock(&mut);  /* unlocking */
