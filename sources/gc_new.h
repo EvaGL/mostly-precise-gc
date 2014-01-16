@@ -68,7 +68,7 @@ template <class T> class meta : public base_meta
 template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1)
 {
     if (DEBUGE_MODE) {
-        printf("gc_new starts class %s\n",typeid(T).name());
+        printf("gc_new starts class %s\n", typeid(T).name());
         fflush(stdout);
     }
 //    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
@@ -79,7 +79,7 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
         counter = 0;
     }
 
-    void *res; /* ninitialize object which will be store the result */
+    void *res = NULL; /* ninitialize object which will be store the result */
     if (count <= 0) {
         return 0;
     }
@@ -87,8 +87,8 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
     new_active = true;  /* set flag that object creates(allocates) in heap */
 
     nesting_level++;
-    PointerList * temp = copyPointerList(offsets);
-    clearPointerList(offsets); offsets = NULL; /* clean from old offsets for new object */
+    PointerList * temp = copyPointerList(offsets); /* save previous offsets in temporary object */
+    offsets = clearPointerList(offsets); /* free memory occupied by offsets */
     
     /*<allocating space and creating meta data for pointers
     *case: count == 1 --- pointer on simplle-type object
@@ -227,8 +227,9 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
 
     new_active = false;  
     
-    clearPointerList(offsets); offsets = NULL; /* finished - cleaning */
+    offsets = clearPointerList(offsets); /* finished - cleaning */
     offsets = copyPointerList(temp); /* restore previous gc_new level offsets */
+    temp = clearPointerList(temp); /* free memory, occupied by temp */
     nesting_level--;
 
 //    pthread_mutex_unlock(&mut);  /* unlocking */

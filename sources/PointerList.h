@@ -7,8 +7,8 @@ struct PointerList {
 };
 
 PointerList * copyPointerList (PointerList * pointerList);
-void addElemetToPointerList (PointerList * pointerList, void * ptr);
+PointerList * addElemetToPointerList (PointerList * pointerList, void * ptr);
 PointerList * pushBackToPointerList (PointerList * pointerList, void * ptr);
-void clearPointerList (PointerList * pointerList);
+PointerList * clearPointerList (PointerList * pointerList);
 size_t sizeOfPointerList (PointerList * pointerList);
 void * getElementFromPointerList (PointerList * pointerList, int number);

@@ -11,11 +11,11 @@ PointerList * copyPointerList (PointerList * pointerList) {
     return newPointerList;
 }
 
-void addElemetToPointerList (PointerList * pointerList, void * ptr) {
+PointerList * addElemetToPointerList (PointerList * pointerList, void * ptr) {
     PointerList * temp = (PointerList *) mmap (0, sizeof(PointerList), PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     temp->pointer = ptr;
     temp->next = pointerList;
-    pointerList = temp;
+    return temp;
 }
 
 PointerList * pushBackToPointerList (PointerList * pointerList, void * ptr) {
@@ -33,12 +33,13 @@ PointerList * pushBackToPointerList (PointerList * pointerList, void * ptr) {
     return pointerList;
 }
 
-void clearPointerList (PointerList * pointerList) {
+PointerList * clearPointerList (PointerList * pointerList) {
     while (pointerList != NULL) {
         PointerList * temp = pointerList->next;
         munmap((void*)pointerList, sizeof(PointerList));
         pointerList = temp;
     }
+    return NULL;
 }
 
 size_t sizeOfPointerList (PointerList * pointerList) {
