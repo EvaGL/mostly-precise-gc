@@ -20,6 +20,8 @@ extern size_t counter;
 extern PointerList * offsets;
 extern MetaInformation * classMeta;
 
+extern int nesting_level;
+
 /**
 * @class meta information
 * @brief stored significant for collecting information
@@ -63,16 +65,16 @@ template <class T> class meta : public base_meta
 * @brief the class for allocating space and setting metainf
 * @detailed for different kinds of call different allocating 
 */
-template <class T> T* gc_new (size_t count=1)  
+template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1)
 {
     if (DEBUGE_MODE) {
         printf("gc_new starts class %s\n",typeid(T).name());
         fflush(stdout);
     }
-    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
+//    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
 
     counter += sizeof(T);  /* num of space that we used ++ */
-    if (counter > 5000000) {/* if occupated place more than 5000000 lets start to collect */
+    if (counter > 5000000 && nesting_level == 0) {/* if occupated place more than 5000000 lets start to collect */
         mark_and_sweep();
         counter = 0;
     }
@@ -83,7 +85,10 @@ template <class T> T* gc_new (size_t count=1)
     }
 
     new_active = true;  /* set flag that object creates(allocates) in heap */
-    offsets->clear();  /* clean from old offsets for new object */
+
+    nesting_level++;
+    PointerList * temp = copyPointerList(offsets);
+    clearPointerList(offsets); offsets = NULL; /* clean from old offsets for new object */
     
     /*<allocating space and creating meta data for pointers
     *case: count == 1 --- pointer on simplle-type object
@@ -94,11 +99,11 @@ template <class T> T* gc_new (size_t count=1)
             fflush(stdout);
         }
         res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
-        new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T;  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
+        new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
         *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
         meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
-        
-        if (offsets->size() == 0) {  /* if num offsets inside object is empty */
+
+        if (sizeOfPointerList(offsets) == 0) { /* if num offsets inside object is empty */
             if (DEBUGE_MODE) {
                 printf("if (offsets.size() == 0) {\n");
                 fflush(stdout);
@@ -121,12 +126,12 @@ template <class T> T* gc_new (size_t count=1)
                 fflush(stdout);
             }
             std::list <size_t> offsets_ptr;
-            for (size_t i = 0; i < offsets->size(); i++) {  /* getting all offsets_ptrs */
+            for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {// offsets->size(); i++) {  /* getting all offsets_ptrs */
                 if (DEBUGE_MODE) {
                     printf("in for\n");
                     fflush(stdout);
                 }
-                offsets_ptr.push_front(reinterpret_cast <size_t> (offsets->getElement(i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));  /* getting pointers */
+                offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
             }
             if (DEBUGE_MODE) {
                 printf("after for %s\n", typeid(T).name());
@@ -166,7 +171,7 @@ template <class T> T* gc_new (size_t count=1)
         }
 
         res = malloc(sizeof(T) * count + sizeof(void *) + sizeof(meta<T>));
-        new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T[count]; /* here we calling constructor from T[count] */
+        new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T[count];//(types ... ); /* here we calling constructor from T[count] */
         *((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
         meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);                
 
@@ -175,9 +180,9 @@ template <class T> T* gc_new (size_t count=1)
             fflush(stdout);
         }
 
-        if (offsets->size() == 0) {
+        if (sizeOfPointerList(offsets) == 0) {
             if (DEBUGE_MODE) {
-                printf("unboxed array\n");
+                printf("unboxed array %zu\n", count);
                 fflush(stdout);
             }
  
@@ -200,8 +205,9 @@ template <class T> T* gc_new (size_t count=1)
             }
 
             std::list <size_t> offsets_ptr;
-            for (size_t i = 0; i < offsets->size() / count; i++)
-                offsets_ptr.push_front(reinterpret_cast <size_t> (offsets->getElement(i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
+            for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {
+                offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
+            }
             if (contains(classMeta, typeid(T).name())) {
                 if (DEBUGE_MODE) {
                     printf("contains meta for class %s\n", typeid(T).name());
@@ -220,11 +226,15 @@ template <class T> T* gc_new (size_t count=1)
     }
 
     new_active = false;  
-    offsets->clear();  /* finished - cleaning */
-    pthread_mutex_unlock(&mut);  /* unlocking */
+    
+    clearPointerList(offsets); offsets = NULL; /* finished - cleaning */
+    offsets = copyPointerList(temp); /* restore previous gc_new level offsets */
+    nesting_level--;
+
+//    pthread_mutex_unlock(&mut);  /* unlocking */
 
     if (DEBUGE_MODE) {
-        printf("gc_new ends %p \n", (void*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)));
+        printf("gc_new ends %p %p \n", (void*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)), (void*)res);
         fflush(stdout);
     }
 

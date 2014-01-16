@@ -38,7 +38,7 @@ public:
 		} else {
 			// add our ptr in offsets list
 			stack_ptr = 0;
-			offsets->push_back(this); 
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = 0;
 		if (DEBUGE_MODE) {
@@ -59,7 +59,7 @@ public:
 			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets->push_back(this);
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = p; 
 		if (DEBUGE_MODE) {
@@ -80,7 +80,7 @@ public:
 			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets->push_back(this);
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = p.ptr;
 		if (DEBUGE_MODE) {
@@ -112,11 +112,17 @@ public:
 	operator bool() const {	return (ptr != NULL); }
 
 	gc_ptr& operator = (const gc_ptr <T> &a)  {
+		if (DEBUGE_MODE) {
+			printf("operator =1  %p \n", a.ptr); fflush(stdout);
+		}
 		ptr = a.ptr;
 		return *this;
 	}
 
 	gc_ptr& operator = (T *a) {
+		if (DEBUGE_MODE) {
+			printf("operator =2  %p \n", a); fflush(stdout);
+		}
 		ptr = a;
 		return *this;
 	}

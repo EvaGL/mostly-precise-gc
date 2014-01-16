@@ -4,10 +4,11 @@
 struct PointerList {
     void * pointer;
     PointerList * next;
-
-    void addElemet (void * ptr);
-    void push_back (void * ptr);
-    void clear ();
-    size_t size ();
-    void * getElement (int number);
 };
+
+PointerList * copyPointerList (PointerList * pointerList);
+void addElemetToPointerList (PointerList * pointerList, void * ptr);
+PointerList * pushBackToPointerList (PointerList * pointerList, void * ptr);
+void clearPointerList (PointerList * pointerList);
+size_t sizeOfPointerList (PointerList * pointerList);
+void * getElementFromPointerList (PointerList * pointerList, int number);
