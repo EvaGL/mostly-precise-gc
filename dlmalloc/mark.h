@@ -9,8 +9,4 @@ size_t get_mark (void*);
 void sweep (void);
 #endif
 
-#if !NO_MALLINFO
-#define NO_MALLINFO false
-#endif
-
 void printDlMallocInfo (void);
