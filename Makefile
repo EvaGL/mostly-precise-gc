@@ -4,13 +4,13 @@ COMPIL_OPIONS=-shared -lm -o
 
 all: gclib malloc
 	$(CC) *.o $(COMPIL_OPIONS) libgc.so
-	rm -rf *.o
+#	rm -rf *.o
 
-malloc:
+malloc: dlmalloc/malloc.c
 	$(CC) -fPIC -c dlmalloc/malloc.c
 
 gclib: $(SOURCE)
 	$(CC) -std=c++11 -fPIC -c $(SOURCE)
 
 clean:
-	rm -rf libgc.so
+	rm -rf libgc.so *.o
