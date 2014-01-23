@@ -1,5 +1,5 @@
 #include "PointerList.h"
-#include "../dlmalloc/mark.h"
+#include <msmalloc.h>
 #include <sys/mman.h>
 
 PointerList * copyPointerList (PointerList * pointerList) {
