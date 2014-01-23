@@ -1,12 +1,19 @@
 DiplomaGC
 =========
 
-Non-conservative garbage collector for C++ language.
+Non-conservative garbage collector for C++.
 
+Installation:
+=============
 
-test build:
-[from root dir]
-make
+1. ./autogen.sh
+2. ./configure
+3. make clean | make | make install
+
+Testing:
+========
+
 cd tests/boehmTest
 make
-./output
+LD_LIBRARY_PATH=/usr/local/lib ./output
+
