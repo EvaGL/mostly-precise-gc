@@ -42,7 +42,7 @@
 #include <sys/time.h>
 #include <cstdlib>
 
-#include "../../libgc.h"
+#include <libgc/libgc.h>
 
 #define GC
 

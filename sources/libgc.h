@@ -1,3 +1,3 @@
 # pragma once
-# include "sources/gc_new.h"
-# include "sources/gc_ptr.h"
+# include "gc_new.h"
+# include "gc_ptr.h"

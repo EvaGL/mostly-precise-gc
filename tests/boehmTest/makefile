@@ -1,6 +1,6 @@
 SOURCE=b.cpp
 CPPC=g++
-LOAD_LIBRARY=-L ../../ -l gc -l pthread
+LOAD_LIBRARY=-L /usr/local/lib/ -l gc -l pthread
 
 all: output
 
