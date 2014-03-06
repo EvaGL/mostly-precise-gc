@@ -4,14 +4,6 @@
 *****************************************************************************************/
 
 #pragma once
-#include <set>
-#include <vector>
-#include <utility>
-#include <map>
-#include <cassert>
-#include "../gc_new/gc_new.h"
-#include <cstdio>
-#include "stack.h"
 
 /**
 * @struct ptr_list

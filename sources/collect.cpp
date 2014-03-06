@@ -3,6 +3,7 @@
 	* Description: This file consists code with realised functions from "collect.h"
 *****************************************************************************************/
 #include "collect.h"
+#include "stack.h"
 
 StackMap stack_ptr = StackMap::create_StackMap_instance(); //!< stack of stack pointers
 

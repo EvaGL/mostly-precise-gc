@@ -5,9 +5,12 @@
 *****************************************************************************************/
 #pragma once
 #include "collect.h"
-#include <vector>
+#include <cstdio>
+#include "PointerList.h"
 
-extern std::vector<void *> offsets; /**< a stored pointers addreses in heap when new_active flag == true else its clear*/
+// #define DEBUGE_MODE false
+
+extern PointerList * offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 /**
 * \class template smart pointer class gc_ptr
@@ -25,39 +28,65 @@ public:
 		\brief setting ptr on null
 	*/
 	gc_ptr() {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr()");
+			fflush(stdout);
+		}
 		if (!new_active) {
-			inc(this); stack_ptr = true; // add current addr in ptr_list (list of pointers on stack)
+			// add current addr in ptr_list (list of pointers on stack)
+			inc(this); stack_ptr = true;
 		} else {
+			// add our ptr in offsets list
 			stack_ptr = 0;
-			offsets.push_back(this); // add our ptr in offsets list
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = 0;
+		if (DEBUGE_MODE) {
+			printf(" NULL pointer .. ends\n");
+			fflush(stdout);
+		}
 	}
 
 	/**	\fn construct gc_ptr(int* p)
 		\brief setting  pointer pointers on p pointer type of T 			
 	*/
 	gc_ptr(T* p) {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr(T* p) ");
+			fflush(stdout);
+		}
 		if (!new_active) {
 			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this);
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = p; 
+		if (DEBUGE_MODE) {
+			printf(" pointer %p.. ends\n", p);
+			fflush(stdout);
+		}
 	}
 
 	/**	\fn construct gc_ptr(const gc_ptr<int> &p)
 		\brief setting pointer on given adress type of T 			
 	*/
 	gc_ptr(const gc_ptr <T> &p) {
+		if (DEBUGE_MODE) {
+			printf("gc_ptr(const ...)");
+			fflush(stdout);
+		}
 		if (!new_active) {
 			inc(this), stack_ptr = true;
 		} else {
 			stack_ptr = 0;
-			offsets.push_back(this);
+			offsets = pushBackToPointerList(offsets, this);
 		}
 		ptr = p.ptr;
+		if (DEBUGE_MODE) {
+			printf("pointer %p ...end \n", ptr);
+			fflush(stdout);
+		}
 	}
 	/**	\fn destructor gc_ptr()
 		\brief delete current gc_ptr from special ptr_list  			
@@ -80,14 +109,22 @@ public:
 	bool operator == (const T* a) { return (a == ptr); }
 	bool operator == (const int a) { return (a == reinterpret_cast<size_t> (ptr)); }
 	bool operator != (const int a) { return (a != reinterpret_cast<size_t> (ptr)); }
+	bool operator == (const long int a) { return (a == reinterpret_cast<size_t> (ptr)); }
+	bool operator != (const long int a) { return (a != reinterpret_cast<size_t> (ptr)); }
 	operator bool() const {	return (ptr != NULL); }
 
 	gc_ptr& operator = (const gc_ptr <T> &a)  {
+		if (DEBUGE_MODE) {
+			printf("operator =1  %p \n", a.ptr); fflush(stdout);
+		}
 		ptr = a.ptr;
 		return *this;
 	}
 
 	gc_ptr& operator = (T *a) {
+		if (DEBUGE_MODE) {
+			printf("operator =2  %p \n", a); fflush(stdout);
+		}
 		ptr = a;
 		return *this;
 	}

@@ -6,9 +6,10 @@
 
 
 #include "taginfo.h"
+#include <sys/mman.h>
 #include <assert.h>
-#include <cstdio>
-#include <cstdlib>
+
+#define DEBUGE_MODE false
 
 /* simple, 1-word object with num 2, struct with num 1*/
 void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
@@ -16,16 +17,28 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 	try {	
 		if (descr_length == 0) {
 			BLOCK_TAG tag = {TAG_MODEL_2, size, num_of_el};
-			result = malloc(sizeof (BLOCK_TAG) + 1);  
+			result = mmap(0, sizeof (BLOCK_TAG) + 1, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			assert (result != MAP_FAILED);
+			if (DEBUGE_MODE) {
+				printf("create_generic_object descr_length == 0 %p\n", result);
+				fflush(stdout);
+			}
 			*(BLOCK_TAG *)result = tag;
 		} else {
 			BLOCK_TAG tag = {TAG_MODEL_1, size, num_of_el};
-			result = malloc (sizeof (BLOCK_TAG) + sizeof(size_t) + descr_length * sizeof(POINTER_DESCR));
+			result = mmap(0, sizeof (BLOCK_TAG) + sizeof(size_t) + descr_length * sizeof(POINTER_DESCR),
+				PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			assert (result != MAP_FAILED);
+			if (DEBUGE_MODE) {
+				printf("create_generic_object descr_length != 0 %p\n", result);
+				fflush(stdout);
+			}
 			*(BLOCK_TAG *)result = tag;
 			*((char *)result + sizeof(BLOCK_TAG)) = descr_length;
 		}
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_generic_object.");
+		fflush(stdout);
 	}
 	return result;
 }
@@ -36,6 +49,7 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Couldn't set descriptor in object.");
+		fflush(stdout);
 	}		
 	return;
 }
@@ -43,12 +57,18 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 /* array of boxed objects*/
 void * create_boxed_array(size_t size) {
 	void * result = NULL;	
-	try {	
+	try {
 		BLOCK_TAG tag = {TAG_MODEL_3, size, 0};
-		result = malloc (sizeof (BLOCK_TAG) + 1);
+		result = mmap(0, sizeof (BLOCK_TAG) + 1, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		assert (result != MAP_FAILED);
+		if (DEBUGE_MODE) {
+			printf("create_boxed_array %p\n", result);
+			fflush(stdout);
+		}
 		*(BLOCK_TAG *)result = tag;
 	} catch (...) {
-		printf("UNEXPECTED ERROR! Function create_boxed_array.");	
+		printf("UNEXPECTED ERROR! Function create_boxed_array.");
+		fflush(stdout);	
 	}
 	return result;
 }
@@ -58,10 +78,17 @@ void * create_unboxed_array(size_t size) {
 	void * result = NULL;	
 	try{
 		BLOCK_TAG tag = {TAG_MODEL_4, size, 0};
-		result = malloc (size*sizeof (word_t) + sizeof (BLOCK_TAG)+1);
+		result = mmap(0, size * sizeof (word_t) + sizeof (BLOCK_TAG) + 1,
+			PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		assert (result != MAP_FAILED);
+		if (DEBUGE_MODE) {
+			printf("create_unboxed_array %p\n", result);
+			fflush(stdout);
+		}
 		*(BLOCK_TAG *)result = tag;
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function create_unboxed_array.");
+		fflush(stdout);
 	}
 	return result;
 }
@@ -90,6 +117,7 @@ PTR_ITERATOR get_iterator (void * object) {
 	}
 	catch(...) {
 		printf("UNEXPECTED ERROR! Function get_iterator.");
+		fflush(stdout);
 	}
 		return res_ptr;
 }
@@ -120,6 +148,7 @@ void * get_ptr (void  * object, size_t index) {
 		}
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function get_ptr.");
+		fflush(stdout);
 	}
 }
 
@@ -155,6 +184,7 @@ void * next_ptr (PTR_ITERATOR * iterator) {
 		}
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function next_ptr.");
+		fflush(stdout);
 	}
 	return res_ptr;
 }

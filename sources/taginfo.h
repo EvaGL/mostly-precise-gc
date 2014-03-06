@@ -1,11 +1,7 @@
 /* models that we need to keep informations about pointers */
 
 #pragma once
-# include <stdlib.h>
-# include <limits.h>
-# include <stdarg.h>
-# include <math.h>
-# include <string.h>
+#include <stdio.h>
 
 # define MODEL_NUMBER_WIDTH  4  
 # define SIZE      sizeof(size_t) - 4
