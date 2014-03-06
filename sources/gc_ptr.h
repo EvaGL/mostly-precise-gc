@@ -109,6 +109,8 @@ public:
 	bool operator == (const T* a) { return (a == ptr); }
 	bool operator == (const int a) { return (a == reinterpret_cast<size_t> (ptr)); }
 	bool operator != (const int a) { return (a != reinterpret_cast<size_t> (ptr)); }
+	bool operator == (const long int a) { return (a == reinterpret_cast<size_t> (ptr)); }
+	bool operator != (const long int a) { return (a != reinterpret_cast<size_t> (ptr)); }
 	operator bool() const {	return (ptr != NULL); }
 
 	gc_ptr& operator = (const gc_ptr <T> &a)  {
