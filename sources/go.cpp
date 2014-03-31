@@ -1,7 +1,7 @@
 /****************************************************************************************
         * File: go.cpp
         * Description: realisation of functions from 'go.h'
-        * Update: 22/10/13
+        * Update: 31/03/14
 *****************************************************************************************/
 
 #include "taginfo.h"
@@ -14,6 +14,7 @@ extern "C" {
 	size_t get_mark (void*);
 	void sweep (void);
 	void printDlMallocInfo (void);
+	int isHeapPointer (void*);
 }
 
 extern StackMap stack_ptr;
@@ -43,7 +44,7 @@ void go (void * v, bool mark_bit) {
 	}
 
 	try {
-		if (v == NULL) {
+		if (v == NULL || !isHeapPointer(v)) {
 			return;
 		}
 		
