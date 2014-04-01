@@ -20,6 +20,36 @@ extern "C" {
 extern StackMap stack_ptr;
 extern PointerList * offsets;
 
+inline void* get_next_obj(void *v) {  /* get the next object*/
+	return reinterpret_cast <void*> (*((size_t *)v));
+}
+
+struct Fake_roots{
+  Fake_roots * next;
+  void * root;
+};
+Fake_roots * fake_roots = NULL;
+
+void register_object (void * p) {
+  Fake_roots * fr = (Fake_roots *) malloc (sizeof(Fake_roots));
+  fr->next = fake_roots;
+  fr->root = p;
+  fake_roots = fr;
+}
+
+void unregister_object (void * p) {
+  if (fake_roots) fake_roots = fake_roots->next;
+}
+
+void mark_fake_roots () {
+  Fake_roots * fr = fake_roots;
+  while (fr) {
+    mark(fr);
+    go(get_next_obj(fr->root), 1);
+    fr = fr->next;
+  }
+}
+
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	if (DEBUGE_MODE) {
 		printf("in get_meta_inf %p ", v);
@@ -31,10 +61,6 @@ inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 		fflush(stdout);
 	}
 	return res;
-}
-
-inline void* get_next_obj(void *v) {  /* get the next object*/
-	return reinterpret_cast <void*> (*((size_t *)v));
 }
 
 void go (void * v, bool mark_bit) {
@@ -137,6 +163,7 @@ void mark_and_sweep () {
 		printf("in mark_and_sweep\n");
 		fflush(stdout);
 	}
+	mark_fake_roots();
 	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
 		if (DEBUGE_MODE) {
 			printf(" root %p; ", *root);
