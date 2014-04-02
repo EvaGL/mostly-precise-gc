@@ -1,6 +1,6 @@
 #include "PointerList.h"
 #include <sys/mman.h>
-#include <msmalloc.h>
+#include "../msmalloc.h"
 
 PointerList * copyPointerList (PointerList * pointerList) {
     PointerList * newPointerList = NULL, * temp = pointerList;

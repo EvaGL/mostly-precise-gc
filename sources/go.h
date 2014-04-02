@@ -10,9 +10,11 @@
  \fn go - walks through the objects
  \brief first arg - pointer on object, sec - mark_bit
  */
-void go (void *v, bool mark_bit);
+void go (void *v);
 
 /**
  \fn mark_and_sweep - mark and delete garbage
  */
 void mark_and_sweep (); 
+
+inline void* get_next_obj (void *v);

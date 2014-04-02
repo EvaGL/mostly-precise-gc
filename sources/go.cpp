@@ -8,13 +8,14 @@
 #include "gc_new.h"
 #include "stack.h"
 #include "PointerList.h"
+#include "fake_roots.h"
 
 extern "C" {
-	void mark (void*);
-	size_t get_mark (void*);
+	void mark (void *);
+	size_t get_mark (void *);
 	void sweep (void);
 	void printDlMallocInfo (void);
-	int isHeapPointer (void*);
+	int is_heap_pointer (void *);
 }
 
 extern StackMap stack_ptr;
@@ -22,32 +23,6 @@ extern PointerList * offsets;
 
 inline void* get_next_obj(void *v) {  /* get the next object*/
 	return reinterpret_cast <void*> (*((size_t *)v));
-}
-
-struct Fake_roots{
-  Fake_roots * next;
-  void * root;
-};
-Fake_roots * fake_roots = NULL;
-
-void register_object (void * p) {
-  Fake_roots * fr = (Fake_roots *) malloc (sizeof(Fake_roots));
-  fr->next = fake_roots;
-  fr->root = p;
-  fake_roots = fr;
-}
-
-void unregister_object (void * p) {
-  if (fake_roots) fake_roots = fake_roots->next;
-}
-
-void mark_fake_roots () {
-  Fake_roots * fr = fake_roots;
-  while (fr) {
-    mark(fr);
-    go(get_next_obj(fr->root), 1);
-    fr = fr->next;
-  }
 }
 
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
@@ -63,14 +38,14 @@ inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	return res;
 }
 
-void go (void * v, bool mark_bit) {
+void go (void * v) {
 	if (DEBUGE_MODE) {
 		printf("\n\tin go ");
 		fflush(stdout);
 	}
 
 	try {
-		if (v == NULL || !isHeapPointer(v)) {
+		if (v == NULL || !is_heap_pointer(v)) {
 			return;
 		}
 		
@@ -129,7 +104,7 @@ void go (void * v, bool mark_bit) {
 						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 							void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
 							if (p) {
-								go(get_next_obj(p), mark_bit);  /* go deeper and mark*/
+								go(get_next_obj(p));  /* go deeper and mark*/
 							}
 							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
@@ -169,7 +144,7 @@ void mark_and_sweep () {
 			printf(" root %p; ", *root);
 			fflush(stdout);
 		}
-		go (get_next_obj(*root), 1); /* mark all available objects with mbit = 1*/
+		go (get_next_obj(*root)); /* mark all available objects with mbit = 1*/
 	}
 	if (DEBUGE_MODE) {
 		printf("\nsweep\n");

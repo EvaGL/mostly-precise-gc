@@ -23,7 +23,7 @@ extern MetaInformation * classMeta;
 extern int nesting_level;
 
 extern "C" {
-  void trancfer_to_automatic_objects (void *);
+  void transfer_to_automatic_objects (void *);
 }
 
 /**
@@ -103,7 +103,7 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
             fflush(stdout);
         }
         res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
-  trancfer_to_automatic_objects(res);
+	transfer_to_automatic_objects(res);
         new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
         *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
         meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
@@ -176,7 +176,7 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
         }
 
         res = malloc(sizeof(T) * count + sizeof(void *) + sizeof(meta<T>));
-    trancfer_to_automatic_objects(res);
+	transfer_to_automatic_objects(res);
         new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T[count];//(types ... ); /* here we calling constructor from T[count] */
         *((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
         meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);                
