@@ -2,36 +2,36 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <string.h>
-
 #include <stdio.h>
 
 struct ClassesNamesPull {
-    void * pullBegin;
-    void * pullEnd;
-    void * endOfMappedSpace;
+    char * pullBegin;
+    char * pullEnd;
+    char * endOfMappedSpace;
     size_t length;
 
     ClassesNamesPull () {
         length = 4096;
-        pullBegin = mmap(0, length, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        pullBegin = (char*)mmap(0, length, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         assert(pullBegin != MAP_FAILED);
-        endOfMappedSpace = (void *)((char *)pullBegin + length / sizeof(char));
+        endOfMappedSpace = pullBegin + length * sizeof(char);
         pullEnd = pullBegin;
     }
 
     void allocateMoreSpace () {
-        endOfMappedSpace = mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        endOfMappedSpace = (char*)mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         assert(endOfMappedSpace != MAP_FAILED);
-        endOfMappedSpace = (void *)((char *)endOfMappedSpace + length / sizeof(char));
+        endOfMappedSpace = (endOfMappedSpace + length * sizeof(char));
     }
 
-    void * addClassName (const char * str) {
-		if (endOfMappedSpace < (void *)((char *)pullEnd + strlen(str) / sizeof(char))) {
-			endOfMappedSpace = mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    char * addClassName (const char * str) {
+		if (endOfMappedSpace < (pullEnd + (strlen(str) + 1) * sizeof(char))) {
+			endOfMappedSpace = (char*)mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     	}
-        void * result = pullEnd;
-        strcpy((char *)pullEnd, str);
-        pullEnd = (void *)((char *)pullEnd + strlen(str) / sizeof(char));
+        char * result = pullEnd;
+        strcpy(pullEnd, str);
+        strcpy(pullEnd + (strlen(str)), "\0");
+        pullEnd = (pullEnd + (strlen(str) + 1) * sizeof(char));
         return result;
     }
 };
@@ -40,25 +40,42 @@ ClassesNamesPull classNamesPull;
 MetaInformation * classMeta = NULL;
 
 
-int contains (MetaInformation * meta, const char * str) {
+void * contains (MetaInformation * meta, const char * str) {
     MetaInformation * temp = meta;
     while (temp != NULL) {
-        char * metaName = reinterpret_cast<char *>(temp->name);
-        if (strlen(str) == strlen(metaName) && !strcmp(metaName, str)) {
-            return 1;
+        char * metaName = temp->name;
+        int i = 0, len = strlen(str);
+        for (; i < strlen(str); i++) {
+            if (metaName[i] != str[i]) {
+                break;
+            }
         }
+       if (i == len && metaName[i] == '\0')
+           return temp->pointer;
         temp = temp->next;
     }
-    return 0;
+    #ifdef DEBUGE_MODE
+        printf(" no class meta \t");
+        for (int i = 0; i < strlen(str); i++) {
+            printf("%c", str[i]);
+        }
+        printf("\n");
+    #endif
+    return NULL;
 }
 
 void * getClassMetaPointer (MetaInformation * meta, const char * str) {
     MetaInformation * temp = meta;
     while (temp != NULL) {
-        char * metaName = reinterpret_cast<char *>(temp->name);
-        if (strlen(str) == strlen(metaName) && !strcmp(metaName, str)) {
-            return temp->pointer;
+        char * metaName = (temp->name);
+        int i = 0, len = strlen(str);
+        for (; i < strlen(str); i++) {
+            if (metaName[i] != str[i]) {
+                break;
+            }
         }
+       if (i == len && metaName[i] == '\0')
+           return temp->pointer;
         temp = temp->next;
     }
     return NULL;
