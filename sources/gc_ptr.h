@@ -93,7 +93,7 @@ public:
 	/* reloaded operators for gc_ptrs objects*/
 	T& operator*() const { return *ptr; }
 	T* operator->() const {	return ptr; }
-        operator T* () const { return ptr; }
+    operator T* () const { return ptr; }
 	T* get() const { return ptr; }
 	T& operator[](size_t index) const { return ptr[index]; }
 	T& operator[](size_t index) { return ptr[index]; }
