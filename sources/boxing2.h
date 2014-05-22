@@ -17,7 +17,7 @@ typedef unsigned long long word_t;
 */
 extern void * generic_box_simple        (); /*< create box for 1-word obj*/
 extern void * generic_box_unboxed_array (size_t len); /*< create box for array with num of chunks = len*/
-extern void * generic_box_boxed_array	(size_t len); /*< create box for array of pointers on boxed objecct num of chunks = len*/
+extern void * generic_box_boxed_array	(size_t len, void * clMeta, size_t typeSize); /*< create box for array of pointers on boxed objecct num of chunks = len*/
 /* \fn create box for struct 
     \params list of pointers in struct, size, num el
 */

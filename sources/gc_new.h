@@ -8,31 +8,27 @@
 #include <pthread.h>
 #include "go.h"
 #include "boxing2.h"
+#include "taginfo.h"
 #include <typeinfo>
 #include "meta_information.h"
 #include "PointerList.h"
-
-#define DEBUGE_MODE false
+#include <assert.h>
+# include <msmalloc.h>
 
 extern pthread_mutex_t mut;  
 extern bool new_active;
+extern bool no_active;
 extern size_t counter;
 extern PointerList * offsets;
 extern MetaInformation * classMeta;
-
 extern int nesting_level;
-
-extern "C" {
-  void transfer_to_automatic_objects (void *);
-}
 
 /**
 * @class meta information
 * @brief stored significant for collecting information
 * @detailed the first main thing that stored - pointer object box
 */
-class base_meta
-{
+class base_meta {
     public:
     void *shell; /**< pointer on the box(meta info struct for storing offsets) of object */
     size_t size; /**< size of object */
@@ -45,8 +41,7 @@ class base_meta
 * @brief the class with virtual functions from meta
 * @detailed stored pointer on the beginning gc_ptr object(base_meta)
 */
-template <class T> class meta : public base_meta
-{
+template <class T> class meta : public base_meta {
     public:
     T* ptr;
     
@@ -64,186 +59,120 @@ template <class T> class meta : public base_meta
     }
 };
 
+template <class T> bool hasOffsets ( void ) {
+    PointerList * temp = offsets;
+    const char * typeidName = typeid(T).name();
+    void * clMeta = contains(classMeta, typeidName);
+    void * res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
+    transfer_to_automatic_objects(res);
+    new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T();
+    *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
+    meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
+    
+    if (sizeOfPointerList(offsets) == 0) {
+        if (clMeta) {
+            m_inf->shell = clMeta; 
+        } else { /*if doesn't */
+            m_inf->shell = generic_box_simple (); /* create new type - box, save in shell */
+            addNewClassMetaInformation(typeidName, m_inf->shell);
+        }
+    } else { /*case offset count more than 0, doing the same things except created boxes */
+        std::list <size_t> offsets_ptr;
+        for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {// offsets->size(); i++) {  /* getting all offsets_ptrs */
+            offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
+        }
+        if (clMeta) {
+            m_inf->shell = clMeta;
+        } else {
+            m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), 1); /*create new box and save pointer in shell */
+            addNewClassMetaInformation(typeidName, m_inf->shell);
+        }
+    }
+    m_inf->size = 1;  /* count of offsets */
+    m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
+
+    bool result = (sizeOfPointerList(offsets) != 0);
+    offsets = clearPointerList(offsets); /* free memory, occupied by offsets */
+    offsets = temp; /* restore previous level offsets */
+    return result;
+}
+
 /**
 * @class gc_new
 * @brief the class for allocating space and setting metainf
 * @detailed for different kinds of call different allocating 
 */
-template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1)
-{
-    if (DEBUGE_MODE) {
-        printf("gc_new starts class %s\n", typeid(T).name());
-        fflush(stdout);
-    }
-//    while (pthread_mutex_trylock(&mut) != 0){};  /* trying to lock */
-
+template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1) {
     counter += sizeof(T);  /* num of space that we used ++ */
-    if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
+    if (counter > 500000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
         mark_and_sweep();
         counter = 0;
     }
 
     void *res = NULL; /* ninitialize object which will be store the result */
-    if (count <= 0) {
-        return 0;
-    }
+    assert(count >= 0);
 
     new_active = true;  /* set flag that object creates(allocates) in heap */
-
     nesting_level++;
     PointerList * temp = offsets; /* save previous level offsets in temporary object */
     offsets = NULL;
+    const char * typeidName = typeid(T).name();
+    void * clMeta = contains(classMeta, typeidName); // get pointer to class meta or NULL if it is no meta for this class
+    meta<T>* m_inf = NULL;
     
-    /*<allocating space and creating meta data for pointers
-    *case: count == 1 --- pointer on simplle-type object
-    *otherwise: other pointers(...)*/
+    res = malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
+    transfer_to_automatic_objects(res);
     if (count == 1) {
-        if (DEBUGE_MODE) {
-            printf("if (count == 1) {\n");
-            fflush(stdout);
-        }
-        res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
-	transfer_to_automatic_objects(res);
         new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
         *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
-        meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
-
-        if (sizeOfPointerList(offsets) == 0) { /* if num offsets inside object is empty */
-            if (DEBUGE_MODE) {
-                printf("if (offsets.size() == 0) {\n");
-                fflush(stdout);
-            }
-            if (contains(classMeta, typeid(T).name())) {
-                if (DEBUGE_MODE) {
-                    printf("contains meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name()); 
+        m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
+    
+        if (sizeOfPointerList(offsets) == 0) {
+            if (clMeta) {
+                m_inf->shell = clMeta; 
             } else { /*if doesn't */
-                if (DEBUGE_MODE) {
-                    printf("new meta for class %s\n", typeid(T).name());
-                }
                 m_inf->shell = generic_box_simple (); /* create new type - box, save in shell */
-                addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
+                addNewClassMetaInformation(typeidName, m_inf->shell);
             }
         } else { /*case offset count more than 0, doing the same things except created boxes */
-            if (DEBUGE_MODE) {
-                printf("        } else { /*case offset count more than 0, doing the same things except created boxes */\n");
-                fflush(stdout);
-            }
             std::list <size_t> offsets_ptr;
             for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {// offsets->size(); i++) {  /* getting all offsets_ptrs */
-                if (DEBUGE_MODE) {
-                    printf("in for\n");
-                    fflush(stdout);
-                }
                 offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
             }
-            if (DEBUGE_MODE) {
-                printf("after for %s\n", typeid(T).name());
-                fflush(stdout);
-            }
-            if (contains(classMeta, typeid(T).name())) {
-                if (DEBUGE_MODE) {
-                    printf("contains meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
+            if (clMeta) {
+                m_inf->shell = clMeta;
             } else {
-                if (DEBUGE_MODE) {
-                    printf("create meta for class %s\n", typeid(T).name());
-                }
                 m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count); /*create new box and save pointer in shell */
-                if (DEBUGE_MODE) {
-                    printf("after m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count);\n");
-                    fflush(stdout);
-                } 
-                addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
+                addNewClassMetaInformation(typeidName, m_inf->shell);
             }
         }
-        if (DEBUGE_MODE) {
-            printf("after-if-1\n");
-            fflush(stdout);
-        }    
-        m_inf->size = count;  /* count of offsets */
-        if (DEBUGE_MODE) {
-            printf("before m_inf->ptr = (T*)((char *)res ... \n");
-            fflush(stdout);
-        }
-        m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
-    } else { 
-        if (DEBUGE_MODE) {
-            printf("} else {\n");
-            fflush(stdout);
-        }
-
-        res = malloc(sizeof(T) * count + sizeof(void *) + sizeof(meta<T>));
-	transfer_to_automatic_objects(res);
-        new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T[count];//(types ... ); /* here we calling constructor from T[count] */
+    } else {
+        no_active = true; // offsets wont counting yet
+        new ((char *)res + sizeof(void *) + sizeof(meta<T>)) T[count];
         *((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
-        meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);                
+        m_inf = reinterpret_cast <meta<T>* > (res);
 
-        if (DEBUGE_MODE) {
-            printf("after malloc---2\n");
-            fflush(stdout);
-        }
-
-        if (sizeOfPointerList(offsets) == 0) {
-            if (DEBUGE_MODE) {
-                printf("unboxed array %zu\n", count);
-                fflush(stdout);
-            }
- 
-            if (contains(classMeta, typeid(T).name())) {
-                if (DEBUGE_MODE) {
-                    printf("contains meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
-            } else {
-                if (DEBUGE_MODE) {
-                    printf("create meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = generic_box_unboxed_array (count);
-                addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
-            }
+        no_active = false; // offsets will counting yet
+        new_active = true; // restore, because string new ... T[coint]; changed it to false
+        // force counting class metainfo
+        if (hasOffsets<T>()) {
+            clMeta = contains(classMeta, typeidName);
+            assert(clMeta != NULL);
+            m_inf->shell = generic_box_boxed_array(count, clMeta, sizeof(T));
         } else {
-            if (DEBUGE_MODE) {
-                printf("box struct\n");
-                fflush(stdout);
-            }
-
-            std::list <size_t> offsets_ptr;
-            for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {
-                offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
-            }
-            if (contains(classMeta, typeid(T).name())) {
-                if (DEBUGE_MODE) {
-                    printf("contains meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = getClassMetaPointer(classMeta, typeid(T).name());
-            } else {
-                if (DEBUGE_MODE) {
-                    printf("create meta for class %s\n", typeid(T).name());
-                }
-                m_inf->shell = generic_box_struct (offsets_ptr, sizeof(T), count);
-                addNewClassMetaInformation(typeid(T).name(), m_inf->shell);
-            }
+            clMeta = contains(classMeta, typeidName);
+            m_inf->shell = generic_box_unboxed_array(count);
         }
-        m_inf->size = count;
-        m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
+        assert(clMeta != NULL);
     }
-
+    m_inf->size = count;  /* count of offsets */
+    m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
     new_active = false;  
     
     offsets = clearPointerList(offsets); /* free memory, occupied by offsets */
     offsets = temp; /* restore previous level offsets */
     temp = NULL;
     nesting_level--;
-
-//    pthread_mutex_unlock(&mut);  /* unlocking */
-
-    if (DEBUGE_MODE) {
-        printf("gc_new ends %p %p \n", (void*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)), (void*)res);
-        fflush(stdout);
-    }
 
     return (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value */
 }

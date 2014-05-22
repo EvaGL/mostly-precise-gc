@@ -40,18 +40,18 @@ void * generic_box_unboxed_array(size_t len) {
 * @param len - num of elements
 * @return the pointer on object
 */
-void * generic_box_boxed_array (size_t len) { 
+void * generic_box_boxed_array (size_t len, void * clMeta, size_t typeSize) { 
 	/*
 	 * call the function for creating object with boxed elements
 	 * first arg - num of boxed elements in array
 	 */	
-	return create_boxed_array(len);
+	return create_boxed_array(len, clMeta, typeSize);
 }
 
 /** 
 * @brief generation box for struct
 * @detailed  create the pointer on object with create_generic_object function
-* @param offsets_ptr - list of pointer offsets in struct, size - full size of real struct, num_el - num of pointers
+* @param offsets_ptr - list of pointer offsets in struct, size - full size of real struct, num_el - num of this type elements!!!! ?num of pointers 
 * @return the pointer on object
 */
 void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
@@ -62,6 +62,9 @@ void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t n
 		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of pointers in the struct>
 		 */		
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
+		#ifdef DEBUGE_MODE
+			printf("%zu\n", offsets_ptr.size());
+		#endif
 		std::list <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
 		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /* save all pointers in object */

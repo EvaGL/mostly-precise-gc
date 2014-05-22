@@ -9,32 +9,31 @@
 #include <sys/mman.h>
 #include <assert.h>
 
-#define DEBUGE_MODE false
-
 /* simple, 1-word object with num 2, struct with num 1*/
 void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
 	void  * result = NULL;
 	try {	
 		if (descr_length == 0) {
-			BLOCK_TAG tag = {TAG_MODEL_2, size, num_of_el};
+			BLOCK_TAG tag = {TAG_MODEL_2, size, num_of_el, NULL};
 			result = mmap(0, sizeof (BLOCK_TAG) + 1, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 			assert (result != MAP_FAILED);
-			if (DEBUGE_MODE) {
+			#ifdef DEBUGE_MODE
 				printf("create_generic_object descr_length == 0 %p\n", result);
 				fflush(stdout);
-			}
+			#endif
 			*(BLOCK_TAG *)result = tag;
 		} else {
-			BLOCK_TAG tag = {TAG_MODEL_1, size, num_of_el};
+			BLOCK_TAG tag = {TAG_MODEL_1, size, num_of_el, NULL};
 			result = mmap(0, sizeof (BLOCK_TAG) + sizeof(size_t) + descr_length * sizeof(POINTER_DESCR),
 				PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 			assert (result != MAP_FAILED);
-			if (DEBUGE_MODE) {
+			#ifdef DEBUGE_MODE
 				printf("create_generic_object descr_length != 0 %p\n", result);
+				printf("descr_length: %zu\n", descr_length);
 				fflush(stdout);
-			}
+			#endif
 			*(BLOCK_TAG *)result = tag;
-			*((char *)result + sizeof(BLOCK_TAG)) = descr_length;
+			*(size_t*)((char *)result + sizeof(BLOCK_TAG)) = descr_length;
 		}
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_generic_object.");
@@ -46,7 +45,7 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 /* setting descriptors*/
 void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 	try {
-		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p - 1))) = descr;
+		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p))) = descr;
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Couldn't set descriptor in object.");
 		fflush(stdout);
@@ -55,17 +54,20 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 }
 
 /* array of boxed objects*/
-void * create_boxed_array(size_t size) {
+void * create_boxed_array(size_t size, void * clMeta, size_t typeSize) {
 	void * result = NULL;	
 	try {
-		BLOCK_TAG tag = {TAG_MODEL_3, size, 0};
-		result = mmap(0, sizeof (BLOCK_TAG) + 1, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		BLOCK_TAG tag = {TAG_MODEL_3, size, typeSize, clMeta};
+		result = mmap(0, sizeof (BLOCK_TAG),
+			PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert (result != MAP_FAILED);
-		if (DEBUGE_MODE) {
+		#ifdef DEBUGE_MODE
 			printf("create_boxed_array %p\n", result);
 			fflush(stdout);
-		}
+		#endif
 		*(BLOCK_TAG *)result = tag;
+		// *(size_t *)((char *)result + sizeof(BLOCK_TAG)) = *(size_t *)clMeta;
+		// printf("create_boxed_array: %p %p %p\n", ((char *)result + sizeof(BLOCK_TAG)), (char *)clMeta, clMeta);
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_boxed_array.");
 		fflush(stdout);	
@@ -77,14 +79,14 @@ void * create_boxed_array(size_t size) {
 void * create_unboxed_array(size_t size) {
 	void * result = NULL;	
 	try{
-		BLOCK_TAG tag = {TAG_MODEL_4, size, 0};
+		BLOCK_TAG tag = {TAG_MODEL_4, size, 0, NULL};
 		result = mmap(0, size * sizeof (word_t) + sizeof (BLOCK_TAG) + 1,
 			PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert (result != MAP_FAILED);
-		if (DEBUGE_MODE) {
+		#ifdef DEBUGE_MODE
 			printf("create_unboxed_array %p\n", result);
 			fflush(stdout);
-		}
+		#endif
 		*(BLOCK_TAG *)result = tag;
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function create_unboxed_array.");
