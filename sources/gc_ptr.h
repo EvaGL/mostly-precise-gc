@@ -8,10 +8,9 @@
 #include <cstdio>
 #include "PointerList.h"
 
-// #define DEBUGE_MODE false
-
 extern PointerList * offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
+extern bool no_active;
 /**
 * \class template smart pointer class gc_ptr
 * \brief the class describes smart pointer
@@ -28,71 +27,65 @@ public:
 		\brief setting ptr on null
 	*/
 	gc_ptr() {
-		if (DEBUGE_MODE) {
-			printf("gc_ptr()");
-			fflush(stdout);
-		}
-		if (!new_active) {
-			// add current addr in ptr_list (list of pointers on stack)
-			inc(this); stack_ptr = true;
-		} else {
-			// add our ptr in offsets list
-			stack_ptr = 0;
-			offsets = pushBackToPointerList(offsets, this);
+		if (!no_active) {
+			if (!new_active) {
+				// add current addr in ptr_list (list of pointers on stack)
+				#ifdef DEBUGE_MODE
+					printf("stack ptr\n");
+				#endif
+				inc(this); stack_ptr = true;
+			} else {
+				// add our ptr in offsets list
+				stack_ptr = 0;
+				offsets = pushBackToPointerList(offsets, this);
+			}
 		}
 		ptr = 0;
-		if (DEBUGE_MODE) {
-			printf(" NULL pointer .. ends\n");
-			fflush(stdout);
-		}
 	}
 
 	/**	\fn construct gc_ptr(int* p)
 		\brief setting  pointer pointers on p pointer type of T 			
 	*/
 	gc_ptr(T* p) {
-		if (DEBUGE_MODE) {
-			printf("gc_ptr(T* p) ");
-			fflush(stdout);
+		if (!no_active) {
+			if (!new_active) {
+				#ifdef DEBUGE_MODE
+					printf("stack ptr\n");
+				#endif
+				inc(this), stack_ptr = true;
+			} else {
+				stack_ptr = 0;
+				offsets = pushBackToPointerList(offsets, this);
+			}
 		}
-		if (!new_active) {
-			inc(this), stack_ptr = true;
-		} else {
-			stack_ptr = 0;
-			offsets = pushBackToPointerList(offsets, this);
-		}
-		ptr = p; 
-		if (DEBUGE_MODE) {
-			printf(" pointer %p.. ends\n", p);
-			fflush(stdout);
-		}
+		ptr = p;
 	}
 
 	/**	\fn construct gc_ptr(const gc_ptr<int> &p)
 		\brief setting pointer on given adress type of T 			
 	*/
 	gc_ptr(const gc_ptr <T> &p) {
-		if (DEBUGE_MODE) {
-			printf("gc_ptr(const ...)");
-			fflush(stdout);
-		}
-		if (!new_active) {
-			inc(this), stack_ptr = true;
-		} else {
-			stack_ptr = 0;
-			offsets = pushBackToPointerList(offsets, this);
+		if (!no_active) {
+			if (!new_active) {
+				#ifdef DEBUGE_MODE
+					printf("stack ptr\n");
+				#endif
+				inc(this), stack_ptr = true;
+			} else {
+				stack_ptr = 0;
+				offsets = pushBackToPointerList(offsets, this);
+			}
 		}
 		ptr = p.ptr;
-		if (DEBUGE_MODE) {
-			printf("pointer %p ...end \n", ptr);
-			fflush(stdout);
-		}
 	}
 	/**	\fn destructor gc_ptr()
 		\brief delete current gc_ptr from special ptr_list  			
 	*/
 	~gc_ptr() {
 		if (stack_ptr) {
+			#ifdef DEBUGE_MODE
+				printf("stack ptr dectr\n");
+			#endif
 			dec();
 		}
 	}
@@ -113,18 +106,12 @@ public:
 	bool operator != (const long int a) { return (a != reinterpret_cast<size_t> (ptr)); }
 	operator bool() const {	return (ptr != NULL); }
 
-	gc_ptr& operator = (const gc_ptr <T> &a)  {
-		if (DEBUGE_MODE) {
-			printf("operator =1  %p \n", a.ptr); fflush(stdout);
-		}
+	gc_ptr& operator = (const gc_ptr <T> &a) {
 		ptr = a.ptr;
 		return *this;
 	}
 
 	gc_ptr& operator = (T *a) {
-		if (DEBUGE_MODE) {
-			printf("operator =2  %p \n", a); fflush(stdout);
-		}
 		ptr = a;
 		return *this;
 	}
