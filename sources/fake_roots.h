@@ -1,9 +1,6 @@
 #pragma once
 #include "go.h"
-
-extern "C" {
-  void mark (void*);
-}
+#include <msmalloc.h>
 
 /// represents node structure
 struct node {
