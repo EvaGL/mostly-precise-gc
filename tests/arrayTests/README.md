@@ -1,5 +1,5 @@
-arrays tets
-===========
+arrays tests
+============
 
 3 tests of different array types.
 
