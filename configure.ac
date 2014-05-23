@@ -6,7 +6,6 @@ AC_INIT([libgc], [0.1], [noreply@github.com])
 AM_INIT_AUTOMAKE([libgc], [0.1])
 LT_INIT
 
-AC_CONFIG_SRCDIR([sources/PointerList.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
