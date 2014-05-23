@@ -6,11 +6,18 @@
 #pragma once
 #include "collect.h"
 #include <cstdio>
-#include "PointerList.h"
+#include "stack.h"
 
-extern PointerList * offsets;
+extern StackMap stack_ptr;
+extern std::vector <void *> offsets;
 extern bool new_active; /**< global flag. False -- out gc_new, true -- in gc_new*/
 extern bool no_active;
+
+void* current_sp(void) {
+	int temp;
+	return &temp;
+}
+
 /**
 * \class template smart pointer class gc_ptr
 * \brief the class describes smart pointer
@@ -30,14 +37,13 @@ public:
 		if (!no_active) {
 			if (!new_active) {
 				// add current addr in ptr_list (list of pointers on stack)
-				#ifdef DEBUGE_MODE
-					printf("stack ptr\n");
-				#endif
 				inc(this); stack_ptr = true;
 			} else {
 				// add our ptr in offsets list
 				stack_ptr = 0;
-				offsets = pushBackToPointerList(offsets, this);
+				if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp )) {
+					offsets.push_back(this);
+				}
 			}
 		}
 		ptr = 0;
@@ -49,13 +55,12 @@ public:
 	gc_ptr(T* p) {
 		if (!no_active) {
 			if (!new_active) {
-				#ifdef DEBUGE_MODE
-					printf("stack ptr\n");
-				#endif
 				inc(this), stack_ptr = true;
 			} else {
 				stack_ptr = 0;
-				offsets = pushBackToPointerList(offsets, this);
+				if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp )) {
+					offsets.push_back(this);
+				}
 			}
 		}
 		ptr = p;
@@ -73,7 +78,9 @@ public:
 				inc(this), stack_ptr = true;
 			} else {
 				stack_ptr = 0;
-				offsets = pushBackToPointerList(offsets, this);
+				if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp )) {
+					offsets.push_back(this);
+				}
 			}
 		}
 		ptr = p.ptr;
@@ -83,29 +90,26 @@ public:
 	*/
 	~gc_ptr() {
 		if (stack_ptr) {
-			#ifdef DEBUGE_MODE
-				printf("stack ptr dectr\n");
-			#endif
 			dec();
 		}
 	}
 
 	/* reloaded operators for gc_ptrs objects*/
-	T& operator*() const { return *ptr; }
-	T* operator->() const {	return ptr; }
-    operator T* () const { return ptr; }
-	T* get() const { return ptr; }
-	T& operator[](size_t index) const { return ptr[index]; }
-	T& operator[](size_t index) { return ptr[index]; }
-	bool operator == (const gc_ptr <T> &a) { return (a.ptr == ptr); }
-	bool operator != (const gc_ptr <T> &a) { return (a.ptr != ptr); }
-	bool operator != (const T* a) { return (a != ptr); }
-	bool operator == (const T* a) { return (a == ptr); }
-	bool operator == (const int a) { return (a == reinterpret_cast<size_t> (ptr)); }
-	bool operator != (const int a) { return (a != reinterpret_cast<size_t> (ptr)); }
-	bool operator == (const long int a) { return (a == reinterpret_cast<size_t> (ptr)); }
-	bool operator != (const long int a) { return (a != reinterpret_cast<size_t> (ptr)); }
-	operator bool() const {	return (ptr != NULL); }
+	T& operator*() const 					{	return *ptr; }
+	T* operator->() const 					{	return ptr; }
+    operator T* () const 					{	return ptr; }
+	T* get() const 							{	return ptr; }
+	T& operator[](size_t index) const 		{	return ptr[index]; }
+	T& operator[](size_t index) 			{	return ptr[index]; }
+	bool operator == (const gc_ptr <T> &a) 	{	return (a.ptr == ptr); }
+	bool operator != (const gc_ptr <T> &a) 	{	return (a.ptr != ptr); }
+	bool operator != (const T* a) 			{	return (a != ptr); }
+	bool operator == (const T* a) 			{	return (a == ptr); }
+	bool operator == (const int a) 			{	return (a == reinterpret_cast<size_t> (ptr)); }
+	bool operator != (const int a) 			{	return (a != reinterpret_cast<size_t> (ptr)); }
+	bool operator == (const long int a) 	{	return (a == reinterpret_cast<size_t> (ptr)); }
+	bool operator != (const long int a) 	{	return (a != reinterpret_cast<size_t> (ptr)); }
+	operator bool() const 					{	return (ptr != NULL); }
 
 	gc_ptr& operator = (const gc_ptr <T> &a) {
 		ptr = a.ptr;
