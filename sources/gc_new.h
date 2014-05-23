@@ -11,15 +11,15 @@
 #include "taginfo.h"
 #include <typeinfo>
 #include "meta_information.h"
-#include "PointerList.h"
+#include <vector>
 #include <assert.h>
-# include <msmalloc.h>
+#include <msmalloc.h>
 
 extern pthread_mutex_t mut;  
 extern bool new_active;
 extern bool no_active;
 extern size_t counter;
-extern PointerList * offsets;
+extern std::vector <void *> offsets;
 extern MetaInformation * classMeta;
 extern int nesting_level;
 
@@ -60,7 +60,8 @@ template <class T> class meta : public base_meta {
 };
 
 template <class T> bool hasOffsets ( void ) {
-    PointerList * temp = offsets;
+    std::vector <void *> temp = offsets;
+    offsets.clear();
     const char * typeidName = typeid(T).name();
     void * clMeta = contains(classMeta, typeidName);
     void * res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
@@ -69,7 +70,7 @@ template <class T> bool hasOffsets ( void ) {
     *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
     meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
     
-    if (sizeOfPointerList(offsets) == 0) {
+    if (offsets.empty()) {
         if (clMeta) {
             m_inf->shell = clMeta; 
         } else { /*if doesn't */
@@ -78,8 +79,8 @@ template <class T> bool hasOffsets ( void ) {
         }
     } else { /*case offset count more than 0, doing the same things except created boxes */
         std::list <size_t> offsets_ptr;
-        for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {// offsets->size(); i++) {  /* getting all offsets_ptrs */
-            offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
+        for (size_t i = 0; i < offsets.size(); i++) { /* getting all offsets_ptrs */
+            offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));
         }
         if (clMeta) {
             m_inf->shell = clMeta;
@@ -91,9 +92,10 @@ template <class T> bool hasOffsets ( void ) {
     m_inf->size = 1;  /* count of offsets */
     m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
 
-    bool result = (sizeOfPointerList(offsets) != 0);
-    offsets = clearPointerList(offsets); /* free memory, occupied by offsets */
+    bool result = (!offsets.empty());
+    offsets.clear(); /* free memory, occupied by offsets */
     offsets = temp; /* restore previous level offsets */
+    temp.clear();
     return result;
 }
 
@@ -114,8 +116,8 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
 
     new_active = true;  /* set flag that object creates(allocates) in heap */
     nesting_level++;
-    PointerList * temp = offsets; /* save previous level offsets in temporary object */
-    offsets = NULL;
+    std::vector <void *> temp = offsets; /* save previous level offsets in temporary object */
+    offsets.clear();
     const char * typeidName = typeid(T).name();
     void * clMeta = contains(classMeta, typeidName); // get pointer to class meta or NULL if it is no meta for this class
     meta<T>* m_inf = NULL;
@@ -126,8 +128,8 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
         new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
         *((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
         m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
-    
-        if (sizeOfPointerList(offsets) == 0) {
+
+        if (offsets.empty()){
             if (clMeta) {
                 m_inf->shell = clMeta; 
             } else { /*if doesn't */
@@ -136,8 +138,8 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
             }
         } else { /*case offset count more than 0, doing the same things except created boxes */
             std::list <size_t> offsets_ptr;
-            for (size_t i = 0; i < sizeOfPointerList(offsets); i++) {// offsets->size(); i++) {  /* getting all offsets_ptrs */
-                offsets_ptr.push_front(reinterpret_cast <size_t> (getElementFromPointerList(offsets, i)) - reinterpret_cast <size_t> ((char *)res + sizeof(void*) + sizeof(meta<T>)));
+            for (size_t i = 0; i < offsets.size(); i++) { /* getting all offsets_ptrs */
+                offsets_ptr.push_front(reinterpret_cast <size_t> (offsets[i]) - reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>)));
             }
             if (clMeta) {
                 m_inf->shell = clMeta;
@@ -167,11 +169,11 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
     }
     m_inf->size = count;  /* count of offsets */
     m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
-    new_active = false;  
-    
-    offsets = clearPointerList(offsets); /* free memory, occupied by offsets */
+    new_active = false;
+
+    offsets.clear(); /* free memory, occupied by offsets */
     offsets = temp; /* restore previous level offsets */
-    temp = NULL;
+    temp.clear();
     nesting_level--;
 
     return (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value */

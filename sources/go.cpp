@@ -7,13 +7,11 @@
 #include "taginfo.h"
 #include "gc_new.h"
 #include "stack.h"
-#include "PointerList.h"
 #include "fake_roots.h"
 
 // #define DEBUGE_MODE
 
 extern StackMap stack_ptr;
-extern PointerList * offsets;
 
 inline void* get_next_obj(void *v) {  /* get the next object*/
 	return reinterpret_cast <void*> (*((size_t *)v));
