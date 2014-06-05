@@ -8,14 +8,14 @@
 #include "gc_new.h"
 #include "stack.h"
 #include "fake_roots.h"
+#include <stdint.h>
 
 // #define DEBUGE_MODE
 
 extern StackMap stack_ptr;
 
 inline void* get_next_obj(void *v) {  /* get the next object*/
-	return reinterpret_cast <void*> (*((size_t *)v));
-}
+	return (void*)( (uintptr_t)(reinterpret_cast <void*> (*((size_t *)v))) & ~(uintptr_t)1);}
 
 inline base_meta* get_meta_inf (void *v) {  /*!< get the block with meta_inf*/
 	base_meta* res = (reinterpret_cast <base_meta*> (*(reinterpret_cast <size_t*> (reinterpret_cast <size_t>(v) - sizeof(base_meta*)))));
