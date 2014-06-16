@@ -91,7 +91,7 @@ struct Node0 {
 	gc_ptr<Node0> right;
         int i, j;
         Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
-        Node0() { left = 0; right = 0; }
+        Node0() {} // { left = 0; right = 0; }
 #       ifndef GC
         //  ~Node0() { if (left) delete left; if (right) delete right; }
 #	endif
@@ -121,8 +121,8 @@ struct GCBench {
 #			else
                          // thisNode->left  = new (GC_NEW(Node0)) Node0();
                          // thisNode->right = new (GC_NEW(Node0)) Node0();
-			thisNode->left=gc_new<Node0>(1);
-			thisNode->right=gc_new<Node0>(1);
+			thisNode->left = gc_new<Node0>(1);
+			thisNode->right = gc_new<Node0>(1);
 		
 
 #			endif
@@ -147,10 +147,11 @@ struct GCBench {
 #		     else
                         //return new (GC_NEW(Node0)) Node0(MakeTree(iDepth-1),
                         //                 		 MakeTree(iDepth-1));
-			gc_ptr<Node0> res;
-			res = gc_new<Node0>(1);
-			*res = Node0 (MakeTree(iDepth-1),MakeTree(iDepth-1));
-			return res;
+			// gc_ptr<Node0> res;
+			// res = gc_new<Node0>(1);
+			// *res = Node0 (MakeTree(iDepth-1),MakeTree(iDepth-1));
+			// return res;
+                        return gc_new<Node0, gc_ptr<Node0>, gc_ptr<Node0>>(MakeTree(iDepth-1),MakeTree(iDepth-1));;
 			
 #		     endif
                 }
@@ -181,14 +182,14 @@ struct GCBench {
                           tempTree = new Node0();
 #			else
 //                          tempTree = new (GC_NEW(Node0)) Node0();
-			tempTree= gc_new<Node0> (1);
+			tempTree = gc_new<Node0> (1);
 #			endif
                         Populate(depth, tempTree);
 #		        ifndef GC
 				printf ("WHAT?!\n");
                           delete tempTree;
 #			endif
-                        tempTree = 0;
+                        tempTree.setNULL();
                 }
 		//mark_and_sweep(); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 tFinish = currentTime();
@@ -201,7 +202,7 @@ struct GCBench {
 #			ifndef GC
                           delete tempTree;
 #			endif
-                        tempTree = 0;
+                        tempTree.setNULL();
                 }
                 tFinish = currentTime();
                 cout << "\tBottom up construction took "
@@ -237,7 +238,7 @@ struct GCBench {
                   delete tempTree;
 #		endif
 		//mark_and_sweep();
-                tempTree = 0;
+                tempTree.setNULL();
 
                 // Create a long lived object
                 cout << " Creating a long-lived binary tree of depth "
