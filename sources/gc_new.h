@@ -14,6 +14,7 @@
 #include <vector>
 #include <assert.h>
 #include <msmalloc.h>
+#include "gc_ptr.h"
 
 extern pthread_mutex_t mut;  
 extern bool new_active;
@@ -104,7 +105,8 @@ template <class T> bool hasOffsets ( void ) {
 * @brief the class for allocating space and setting metainf
 * @detailed for different kinds of call different allocating 
 */
-template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1) {
+// template <class T, typename ... Types> T* gc_new (Types ... types, size_t count = 1) {
+template <class T, typename ... Types> gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
     counter += sizeof(T);  /* num of space that we used ++ */
     if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
         mark_and_sweep();
@@ -176,5 +178,6 @@ template <class T, typename ... Types> T* gc_new (Types ... types, size_t count 
     temp.clear();
     nesting_level--;
 
-    return (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value */
+    //return (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));  /*return ptr on allocated space, begining value */
+    return gc_ptr<T>((T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)));
 }
