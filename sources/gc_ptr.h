@@ -1,8 +1,8 @@
 /*************************************************************************************//**
         * File: gc_ptr.h
         * Description: This file describe smart pointer class gc_ptr
-		* Last modification: 16/10/13
 *****************************************************************************************/
+
 #pragma once
 #include "collect.h"
 #include <cstdio>
@@ -20,9 +20,10 @@
 #define clear_both_flags(x)		(void *) ((uintptr_t)x & ~(uintptr_t)3)
 
 extern StackMap stack_ptr;
-extern std::vector <void *> offsets;
+extern std::vector <size_t> offsets;
 extern bool new_active; /**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
 extern bool no_active; /**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
+extern size_t current_pointer_to_object; /**< used in offsets calculation */
 
 struct Composite_pointer {
 	void * pointer;
@@ -64,9 +65,9 @@ private:
 
 	// only for gc_new
 	gc_ptr (T* p) {
-#ifdef DEBUGE_MODE
-	printf("gc_ptr(T* p) {\n");
-#endif
+		#ifdef DEBUGE_MODE
+			printf("gc_ptr(T* p) {\n");
+		#endif
 		ptr = (void *) p;
 	}
 
@@ -75,9 +76,9 @@ public:
 		\brief setting ptr on null
 	*/
 	gc_ptr () {
-#ifdef DEBUGE_MODE
-	printf("gc_ptr() {\n");
-#endif
+		#ifdef DEBUGE_MODE
+			printf("gc_ptr() {\n");
+		#endif
 		ptr = 0;
 		if (no_active) {
 			return;
@@ -86,7 +87,8 @@ public:
 			inc(this);
 			ptr = set_stack_flag(ptr);
 		} else if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp())) {
-			offsets.push_back(this);
+			assert(current_pointer_to_object != 0);
+			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
 	}
 
@@ -94,9 +96,9 @@ public:
 		\brief setting pointer on given adress type of T 			
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
-#ifdef DEBUGE_MODE
-	printf("gc_ptr(const gc_ptr <T> &p) {\n");
-#endif
+		#ifdef DEBUGE_MODE
+			printf("gc_ptr(const gc_ptr <T> &p) {\n");
+		#endif
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
 		if (is_composite_pointer(p.ptr)) {
 			((Composite_pointer *)(clear_both_flags(p.ptr)))->ref_count++;
@@ -108,7 +110,8 @@ public:
 			inc(this);
 			ptr = set_stack_flag(ptr);
 		} else if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp())) {
-			offsets.push_back(this);
+			assert(current_pointer_to_object != 0);
+			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
 	}
 	
@@ -145,9 +148,9 @@ public:
 	operator bool () const 					{	return get_ptr(ptr) != NULL;							}
 
 	gc_ptr& operator = (const gc_ptr <T> &a) {
-#ifdef DEBUGE_MODE
-	printf("gc_ptr& operator =\n");
-#endif
+		#ifdef DEBUGE_MODE
+			printf("gc_ptr& operator =\n");
+		#endif
 		if (is_composite_pointer(ptr)) {
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);
@@ -171,9 +174,9 @@ public:
 	*/
 	template <typename R>
 	void attach (T * pointer, gc_ptr<R> base) {
-#ifdef DEBUGE_MODE
-	printf("attach %p \n", (void *)base);
-#endif
+		#ifdef DEBUGE_MODE
+			printf("attach %p \n", (void *)base);
+		#endif
 		if (is_composite_pointer(ptr)) {
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);

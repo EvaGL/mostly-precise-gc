@@ -1,8 +1,8 @@
 /*************************************************************************************//**
 	* File: boxing.cpp
 	* Description: This file consists code with realiasation of functions described in "boxing.h"
-	* Update: 17/10/13
 *****************************************************************************************/
+
 #include "boxing2.h"
 #include <iterator>
 #include "taginfo.h"
@@ -54,18 +54,18 @@ void * generic_box_boxed_array (size_t len, void * clMeta, size_t typeSize) {
 * @param offsets_ptr - list of pointer offsets in struct, size - full size of real struct, num_el - num of this type elements!!!! ?num of pointers 
 * @return the pointer on object
 */
-void * generic_box_struct (std::list <size_t> offsets_ptr, size_t size, size_t num_el) {
+void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t num_el) {
 	void* object; /**< a stored pointer */
-	try { 	
+	try {
 		/*
 		 * call function creating box object for struct > 
 		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of pointers in the struct>
-		 */		
+		 */
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
 		#ifdef DEBUGE_MODE
 			printf("%zu\n", offsets_ptr.size());
 		#endif
-		std::list <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
+		std::vector <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
 		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /* save all pointers in object */
 			descr = {*it_offset, 0}; /* save pointers in descriptor */
