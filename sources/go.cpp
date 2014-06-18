@@ -11,27 +11,33 @@
 #include <stdint.h>
 
 #ifdef DEBUGE_MODE
-		#undef DEBUGE_MODE
+	#undef DEBUGE_MODE
 #endif
 
 extern StackMap stack_ptr;
 
 void * get_ptr (void * ptr) {
 	if (is_composite_pointer(ptr)) {
-#ifdef DEBUGE_MODE
-		printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
-#endif
+		#ifdef DEBUGE_MODE
+				printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
+		#endif
 		return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
 	} else {
-#ifdef DEBUGE_MODE
-		printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
-#endif
+		#ifdef DEBUGE_MODE
+				printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
+		#endif
 		return clear_stack_flag(ptr);
 	}
 }
 
 inline void * get_next_obj(void * v) {  /* get the next object*/
+	#ifdef DEBUGE_MODE
+		printf(" get_next_obj %p ", v); fflush(stdout);
+	#endif
 	void * res = reinterpret_cast <void*> (*((size_t *)v));
+	#ifdef DEBUGE_MODE
+		printf(" res %p\n ", res); fflush(stdout);
+	#endif
 	return clear_both_flags(res) == NULL ? NULL : get_ptr(res);
 }
 
@@ -131,9 +137,17 @@ void go (void * v) {
 void mark_and_sweep () {
 	printf("before m&s "); printDlMallocInfo();
 	mark_fake_roots();
+	
+	#ifdef DEBUGE_MODE
+		printf("mark\n"); fflush(stdout);
+	#endif
 	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
-		go (get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
 	}
+
+	#ifdef DEBUGE_MODE
+		printf("sweep"); fflush(stdout);
+	#endif
 	sweep();
 	printf("after m&s "); printDlMallocInfo();
 }

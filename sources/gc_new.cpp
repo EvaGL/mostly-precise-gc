@@ -10,7 +10,6 @@
 
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;  /* create mutex for locking function of allocating */
 std::vector <void *> offsets;
-//PointerList * offsets;
 bool new_active = false; /* global flag. False -- out gc_new, true -- in gc_new*/
 MetaInformation * list_meta_obj = new MetaInformation();
 size_t counter = 0; /* stored count of occupated blocks */

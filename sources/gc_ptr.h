@@ -57,7 +57,7 @@ private:
 		}
 	}
 
-	void * current_sp(void) {
+	void * current_sp (void) {
 		int temp;
 		return &temp;
 	};
