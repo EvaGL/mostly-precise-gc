@@ -1,10 +1,11 @@
 #include <libgc/libgc.h>
 #include <iostream>
 #include <math.h>
-
 #include <sys/time.h>
+
 #define currentTime() stats_rtclock()
 #define elapsedTime(x) (x)
+
 unsigned stats_rtclock (void) {
 	struct timeval t;
 	struct timezone tz;
@@ -15,6 +16,7 @@ unsigned stats_rtclock (void) {
 }
 
 #define array_size 6
+#define ENABLE_C_COMPARE
 
 using std::cout;
 using std::endl;
@@ -74,16 +76,18 @@ void unboxed_array_test () {
 		cout << elapsedTime(tEnd - tBegin) << " msec" << endl;
 	}
 
-	cout << "\tsame in pure C:" << endl;
-	tEnd = currentTime();
-	for (int i = 0; i < array_size; i++) {
-		int size = pow(coef, i);
-		cout << "\t\tallocate array type int, size " << size << " took ";
-		tBegin = currentTime();
-		new int[size];
+	#ifdef ENABLE_C_COMPARE
+		cout << "\tsame in pure C:" << endl;
 		tEnd = currentTime();
-		cout << elapsedTime(tEnd - tBegin) << " msec" << endl;
-	}
+		for (int i = 0; i < array_size; i++) {
+			int size = pow(coef, i);
+			cout << "\t\tallocate array type int, size " << size << " took ";
+			tBegin = currentTime();
+			new int[size];
+			tEnd = currentTime();
+			cout << elapsedTime(tEnd - tBegin) << " msec" << endl;
+		}
+	#endif
 }
 
 void boxed_array_test () {
@@ -99,15 +103,17 @@ void boxed_array_test () {
 		cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
 	}
 
-	cout << "\tsame in pure C:" << endl;
-	for (int i = 0; i < array_size; i++) {
-		int size = pow(coef, i);
-		cout << "\t\tallocate array type A with 2 int * size 10, size " << size << " took ";
-		tBegin = currentTime();
-		new AA[size];
-		tEnd = currentTime();
-		cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
-	}
+	#ifdef ENABLE_C_COMPARE
+		cout << "\tsame in pure C:" << endl;
+		for (int i = 0; i < array_size; i++) {
+			int size = pow(coef, i);
+			cout << "\t\tallocate array type A with 2 int * size 10, size " << size << " took ";
+			tBegin = currentTime();
+			new AA[size];
+			tEnd = currentTime();
+			cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
+		}
+	#endif
 }
 
 void lots_of_different_time_objects () {
@@ -125,18 +131,20 @@ void lots_of_different_time_objects () {
 	tEnd = currentTime();
 	cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
 
-	cout << "same in pure C: ";
-	tBegin = currentTime();
-	for (int i = 0; i < array_size; i++) {
-		new CC[100];
-		new BB[100];
-		new AA[100];
-		new AA();
-		new BB();
-		new CC();
-	}
-	tEnd = currentTime();
-	cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
+	#ifdef ENABLE_C_COMPARE
+		cout << "same in pure C: ";
+		tBegin = currentTime();
+		for (int i = 0; i < array_size; i++) {
+			new CC[100];
+			new BB[100];
+			new AA[100];
+			new AA();
+			new BB();
+			new CC();
+		}
+		tEnd = currentTime();
+		cout << elapsedTime(tEnd - tBegin) << " msec " << endl;
+	#endif
 }
 
 int main (void) {
