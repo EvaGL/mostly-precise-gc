@@ -34,23 +34,26 @@ inline void * get_next_obj(void * v) {  /* get the next object*/
 	#ifdef DEBUGE_MODE
 		printf(" get_next_obj %p ", v); fflush(stdout);
 	#endif
+
 	void * res = reinterpret_cast <void*> (*((size_t *)v));
+	assert(res != NULL);
+	
 	#ifdef DEBUGE_MODE
 		printf(" res %p\n ", res); fflush(stdout);
 	#endif
+	
 	return clear_both_flags(res) == NULL ? NULL : get_ptr(res);
 }
 
 inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
-	base_meta * res = (reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *)))));
-	return res;
+	return reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *))));
 }
 
 void go (void * v) {
 	try {
 		if (v == NULL || !is_heap_pointer(v)) {
 			#ifdef DEBUGE_MODE
-				printf(" %p !is_heap_pointer \n ", v);
+				printf(" %p is not a heap pointer\n ", v);
 			#endif
 			return;
 		}
@@ -63,7 +66,7 @@ void go (void * v) {
 
 		if (get_mark(bm) != 0 || get_mark(v) != 0) { /* if marked --- return*/
 			#ifdef DEBUGE_MODE
-				printf(" already marked \n ");
+				printf(" already marked\n ");
 				fflush(stdout);
 			#endif
 			return;

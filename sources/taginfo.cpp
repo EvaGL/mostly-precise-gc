@@ -1,9 +1,7 @@
 /************************************************************************************//**
-        * File: taginfo.cpp
-        * Description: realisation of functions from 'taginfo.h'
-        * Update: 17/10/13
+		* File: taginfo.cpp
+		* Description: realisation of functions from 'taginfo.h'
 *****************************************************************************************/
-
 
 #include "taginfo.h"
 #include <sys/mman.h>

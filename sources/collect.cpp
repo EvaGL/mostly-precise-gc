@@ -7,8 +7,7 @@
 
 StackMap stack_ptr = StackMap::create_StackMap_instance(); //!< stack of stack pointers
 
-ptr_list* add (ptr_list *&head, void *ptr)
-{
+ptr_list * add (ptr_list *&head, void *ptr) {
 	ptr_list *nw = new ptr_list(ptr);
 	nw->next = head;
 	if (head != 0) {
@@ -17,8 +16,7 @@ ptr_list* add (ptr_list *&head, void *ptr)
 	return head = nw;
 }
 
-void del (ptr_list *&head, ptr_list *me)
-{
+void del (ptr_list *&head, ptr_list *me) {
 	if (me == head) {
 		head = me->next;
 	}
@@ -32,20 +30,17 @@ void del (ptr_list *&head, ptr_list *me)
 }
 
 
-void clear (ptr_list *v)
-{
+void clear (ptr_list * v) {
 	if (v->next != 0) {
 		clear(v->next);
 	}
 	delete v;
 }
 
-void inc (void *p)
-{
+void inc (void * p) {
 	stack_ptr.register_stack_root(p);
 }
 
-void dec ()
-{
+void dec () {
 	stack_ptr.delete_stack_root();
 }

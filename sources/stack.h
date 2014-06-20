@@ -14,19 +14,19 @@ class StackMap;
 class Iterator {
 	StackElement * se;
 public:
-	Iterator(StackElement* x) : se(x) {}
-	Iterator(const Iterator& it) : se(it.se) {}
-	Iterator& operator++() { se++; return *this; }
-	Iterator operator++(int i) {
+	Iterator (StackElement * x) : se(x)	{}
+	Iterator (const Iterator& it) : se(it.se) {}
+	Iterator& operator++ () { se++; return *this; }
+	Iterator operator++ (int i) {
 		Iterator tmp(*this);
 		operator++();
 		return tmp;
 	}
-	bool operator<=(const Iterator& it) { return (long)se <= (long)it.se; }
-	bool operator>=(const Iterator& it) { return (long)se >= (long)it.se; }
-	bool operator==(const Iterator& it) { return se == it.se; }
-	bool operator!=(const Iterator& it) { return se != it.se; }
-	void* operator*() { return se->addr; }
+	bool operator<= (const Iterator& it)	{ return (long)se <= (long)it.se; }
+	bool operator>= (const Iterator& it)	{ return (long)se >= (long)it.se; }
+	bool operator== (const Iterator& it)	{ return se == it.se; }
+	bool operator!= (const Iterator& it)	{ return se != it.se; }
+	void * operator* ()						{ return se->addr; }
 };
 
 class StackMap {
@@ -47,16 +47,16 @@ public:
 
 	/// add new element
 	/// @param stored pointer
-	void register_stack_root(void* newAddr);
+	void register_stack_root (void * newAddr);
 
 	/// delete last-added element
-	void delete_stack_root();
+	void delete_stack_root ();
 
-	void set_length(size_t new_size);
-	size_t get_length();
-	void set_page_size(int new_page_size);
-	Iterator begin();
-	Iterator end();
+	void set_length		(size_t new_size);
+	size_t get_length	();
+	void set_page_size	(int new_page_size);
+	Iterator begin		();
+	Iterator end		();
 
 private:
 	static StackMap* instance;

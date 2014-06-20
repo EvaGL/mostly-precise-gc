@@ -3,18 +3,18 @@
 #include <sys/mman.h>
 #include <assert.h>
 
-#define DEBUG_MODE false
+// #define DEBUG_MODE
 
 StackMap * StackMap::instance = NULL;
 
 StackMap::StackMap(size_t length1,
- 		int free_page_parameter1,
- 		int add_page_parameter1
+		int free_page_parameter1,
+		int add_page_parameter1
  		) {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("StackMap::StackMap(size_t length1,...\n");
 		fflush(stdout);
-	}
+	#endif
 	StackMap::instance = this;
 	stackElement_size = sizeof(struct StackElement);
 	page_size = length1 / stackElement_size;
@@ -33,20 +33,21 @@ StackMap::StackMap(size_t length1,
 	assert(map_begin != MAP_FAILED);
 	top = map_begin;
 	end_of_mapped_space = map_begin + page_size;
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("StackMap: allocate first memory page: %p\n", map_begin);
 		fflush(stdout);
-	}
+	#endif
 }
 
 StackMap StackMap::create_StackMap_instance(
 		int free_page_parameter1, int add_page_parameter1,
 		size_t length1
 		) {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("StackMap StackMap::create_StackMap_instance(...\n");
 		fflush(stdout);
-	}
+	#endif
+
 	if (StackMap::instance) {
 		return * StackMap::instance;
 	}
@@ -54,43 +55,47 @@ StackMap StackMap::create_StackMap_instance(
 }
 
 void StackMap::register_stack_root(void * newAddr) {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("void StackMap::register_stack_root(void* newAddr) {\n");
 		fflush(stdout);
-	}
+	#endif
 	if (top + add_page_parameter > end_of_mapped_space) {
 		// mmap one more memory page
 		StackElement * temp = (struct StackElement *) mmap(end_of_mapped_space, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert(temp != MAP_FAILED);
 		assert(temp == end_of_mapped_space);
-		if (DEBUG_MODE) {
+
+		#ifdef DEBUG_MODE
 			printf("StackMap: allocate one more memory page: ... %p -- new end ... ", (end_of_mapped_space + page_size));
 			fflush(stdout);
-		}
+		#endif
+
 		end_of_mapped_space = temp + page_size;
 	} 
-	if (DEBUG_MODE) {
+
+	#ifdef DEBUG_MODE
 		printf("top - map_begin = %li \n", (long)top - (long)map_begin);
 		fflush(stdout);
-	}
+	#endif
+
 	top ++;
 	top->addr = newAddr;
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("top - map_begin = %li \n", (long)top - (long)map_begin);
 		fflush(stdout);
-	}
+	#endif
 	assert(top >= map_begin);
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("done\n");
 		fflush(stdout);
-	}
+	#endif
 }
 
 void StackMap::delete_stack_root() {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("void StackMap::delete_stack_root() {\n");
 		fflush(stdout);
-	}
+	#endif
 	top --;
 	assert(top >= map_begin);
 	if (top + free_page_parameter < end_of_mapped_space)
@@ -98,55 +103,63 @@ void StackMap::delete_stack_root() {
 		if (munmap(end_of_mapped_space, length) == 0) {
 			end_of_mapped_space -= page_size;
 			assert(end_of_mapped_space >= map_begin);
-		} else if (DEBUG_MODE) {
+		#ifndef DEBUG_MODE
+		}
+		#else
+		} else {
 			printf("StackMap: WARNING: memory page cannot be free ?!? \n");
 			fflush(stdout);
 		}
+		#endif
 	}
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("top - map_begin = %li \n", (long)top - (long)map_begin);
 		fflush(stdout);
-	}
+	#endif
 }
 
 void StackMap::set_length(size_t new_size) {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("void StackMap::set_length(size_t new_size) {\n");
 		fflush(stdout);
-	}
+	#endif
 	length = new_size;
 	page_size = length / stackElement_size;
 }
 
 size_t StackMap::get_length() {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("size_t StackMap::get_length()\n");
 		fflush(stdout);
-	}
+	#endif
+
 	return length;
 }
 
 void StackMap::set_page_size(int new_page_size) {
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("void StackMap::set_page_size(int new_page_size) {{\n");
 		fflush(stdout);
-	}
+	#endif
+
 	page_size = new_page_size;
 	length = page_size * stackElement_size;
 }
 
 Iterator StackMap::begin(){
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("Iterator StackMap::begin(){\n");
 		fflush(stdout);
-	}
+	#endif
+
 	return Iterator(map_begin + 1);
 }
 
 Iterator StackMap::end(){
-	if (DEBUG_MODE) {
+	#ifdef DEBUG_MODE
 		printf("Iterator StackMap::end(){\n");
 		fflush(stdout);
-	}
+	#endif
+
 	return Iterator(top);
 }
