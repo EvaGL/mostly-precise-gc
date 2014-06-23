@@ -5,7 +5,7 @@
 using std::cout;
 using std::endl;
 
-int array_size = 10;
+int array_size = 100;
 
 class Node {
 	gc_ptr<GCString> str;
@@ -73,7 +73,6 @@ void changeTree (gc_ptr<Node> node, const char * str) {
 void func () {
 	gc_ptr<Node> node;
 	node = createTree(5);
-	// print(node);
 	mark_and_sweep();
 
 	// print(node);
