@@ -35,11 +35,11 @@ public:
 };
 
 gc_ptr<Node> makeTree (int depth, gc_ptr<char> array) {
-	if (depth == 0)
+	if (depth-- == 0)
 		return gc_new<Node>();
 	else
 		return gc_new<Node, gc_ptr<Node>, gc_ptr<Node>, gc_ptr<char>>
-			(makeTree(depth - 1, array), makeTree(depth - 1, array), array);
+			(makeTree(depth, array), makeTree(depth, array), array);
 }
 
 gc_ptr<Node> createTree (int depth) {
@@ -77,7 +77,7 @@ void func () {
 	mark_and_sweep();
 
 	// print(node);
-	changeTree(node, "qwertyyyyyy");
+	changeTree(node, "qwertyuiopasdfghjkl;");
 	mark_and_sweep();
 	// print(node);
 }
