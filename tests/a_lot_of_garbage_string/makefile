@@ -1,4 +1,4 @@
-SOURCE=a_lot_of_garbage.cpp
+SOURCE=a_lot_of_garbage.cpp GCString.cpp
 CPPC=g++
 LOAD_LIBRARY=-L /usr/local/lib/ -l gc -l pthread -l msmalloc
 
