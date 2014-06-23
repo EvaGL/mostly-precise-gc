@@ -81,7 +81,13 @@ bool hasOffsets (void) {
 		if (clMeta) {
 			m_inf->shell = clMeta; 
 		} else {
-			m_inf->shell = create_generic_object(0, 0, 1); /* create new type - box, save in shell */
+			/** create new type - box, save in shell;
+			* args: first --- 0 --- no offsets,
+			*		second --- 0 --- size,
+			*		num_of_elements --- 1.
+			* this args means, that it is simple object without any offsets.
+			*/
+			m_inf->shell = create_generic_object(0, 0, 1);
 			addNewClassMetaInformation(typeidName, m_inf->shell);
 		}
 	} else {
