@@ -9,7 +9,7 @@
 #include "stack.h"
 #include <stdint.h>
 
-// #define DEBUGE_MODE
+#define DEBUGE_MODE
 
 #define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
 #define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
@@ -61,9 +61,26 @@ private:
 	// only for gc_new
 	gc_ptr (T* p) {
 		#ifdef DEBUGE_MODE
-			printf("gc_ptr(T* p) {\n");
+			printf("gc_ptr(T* p) { %p\n", this);
 		#endif
 		ptr = (void *) p;
+		if (no_active) {
+			printf("\tno_active\n");
+			return;
+		}
+		if (!new_active) {
+			inc(this);
+			ptr = set_stack_flag(ptr);
+			#ifdef DEBUGE_MODE
+				printf("\tstack\n");
+			#endif
+		} else if (is_heap_pointer(this)) {
+			#ifdef DEBUGE_MODE
+				printf("\theap\n");
+			#endif
+			assert(current_pointer_to_object != 0);
+			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
+		}
 	}
 
 public:
@@ -72,7 +89,7 @@ public:
 	*/
 	gc_ptr () {
 		#ifdef DEBUGE_MODE
-			printf("gc_ptr() {\n");
+			printf("gc_ptr() { %p\n", this);
 		#endif
 		ptr = 0;
 		if (no_active) {
@@ -99,7 +116,7 @@ public:
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
 		#ifdef DEBUGE_MODE
-			printf("gc_ptr(const gc_ptr <T> &p) {\n");
+			printf("gc_ptr(const gc_ptr <T> &p) { %p\n", this);
 		#endif
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
 		if (is_composite_pointer(p.ptr)) {
@@ -121,15 +138,27 @@ public:
 		\brief delete current gc_ptr from special ptr_list  			
 	*/
 	~gc_ptr () {
+		#ifdef DEBUGE_MODE
+			printf("~gc_ptr: %p; ", this);
+		#endif
 		if (is_stack_pointer(ptr)) {
+			#ifdef DEBUGE_MODE
+				printf("stack ptr; ");
+			#endif
 			dec();
 		}
 
 		if (is_composite_pointer(ptr)) {
+			#ifdef DEBUGE_MODE
+				printf("composite ptr; ");
+			#endif
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
+		#ifdef DEBUGE_MODE
+			printf("~gc_ptr: ends\n");
+		#endif
 	}
 
 	/* reloaded operators for gc_ptrs objects*/
