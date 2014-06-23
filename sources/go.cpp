@@ -13,6 +13,7 @@
 #ifdef DEBUGE_MODE
 	#undef DEBUGE_MODE
 #endif
+// #define DEBUGE_MODE
 
 extern StackMap stack_ptr;
 
@@ -36,7 +37,8 @@ inline void * get_next_obj(void * v) {  /* get the next object*/
 	#endif
 
 	void * res = reinterpret_cast <void*> (*((size_t *)v));
-	assert(res != NULL);
+	if (res == NULL)
+		return NULL;
 	
 	#ifdef DEBUGE_MODE
 		printf(" res %p\n ", res); fflush(stdout);
@@ -51,22 +53,22 @@ inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 
 void go (void * v) {
 	try {
+		#ifdef DEBUGE_MODE
+			printf("\nin go\n");
+			fflush(stdout);
+		#endif
 		if (v == NULL || !is_heap_pointer(v)) {
 			#ifdef DEBUGE_MODE
 				printf(" %p is not a heap pointer\n ", v);
 			#endif
 			return;
 		}
-		#ifdef DEBUGE_MODE
-			printf("\nin go\n");
-			fflush(stdout);
-		#endif
 		
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
 
-		if (get_mark(bm) != 0 || get_mark(v) != 0) { /* if marked --- return*/
+		if (get_mark(bm) != 0) {// || get_mark(v) != 0) { /* if marked --- return*/
 			#ifdef DEBUGE_MODE
-				printf(" already marked\n ");
+				printf("%p %p already marked\n ", bm, v);
 				fflush(stdout);
 			#endif
 			return;
@@ -79,7 +81,8 @@ void go (void * v) {
 
 		mark(bm);
 		#ifdef DEBUGE_MODE
-			printf("tag->model:%i \n", tag->model);
+			printf("mark object %p\n", bm);
+			printf("tag->model:%i object: %p\n", tag->model, bm);
 			fflush(stdout);
 		#endif
 
@@ -87,14 +90,19 @@ void go (void * v) {
 			case 1: {  /* boxed object */
 					size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
 					void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
+					#ifdef DEBUGE_MODE
+						printf("offset count: %zu\n", n);
+					#endif
 					for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 						void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
+						#ifdef DEBUGE_MODE
+							printf("offset: %zu\n", (*((POINTER_DESCR *)this_offsets)).offset);
+						#endif
 						if (p) {
 							go(get_next_obj(p));  /* go deeper and mark*/
 						}
 						this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 					}
-					v = (char *)v + tag->size;  /* get next object */
 				}
 				break;
 			case 2:  /* simple obj*/

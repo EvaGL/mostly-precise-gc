@@ -58,11 +58,6 @@ private:
 		}
 	}
 
-	void * current_sp (void) {
-		int temp;
-		return &temp;
-	};
-
 	// only for gc_new
 	gc_ptr (T* p) {
 		#ifdef DEBUGE_MODE
@@ -81,12 +76,19 @@ public:
 		#endif
 		ptr = 0;
 		if (no_active) {
+			printf("\tno_active\n");
 			return;
 		}
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-		} else if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp())) {
+			#ifdef DEBUGE_MODE
+				printf("\tstack\n");
+			#endif
+		} else if (is_heap_pointer(this)) {
+			#ifdef DEBUGE_MODE
+				printf("\theap\n");
+			#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -109,7 +111,7 @@ public:
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-		} else if (!((size_t)this > (size_t)&stack_ptr && (size_t)this <= (size_t)current_sp())) {
+		} else if (is_heap_pointer(this)) {
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}

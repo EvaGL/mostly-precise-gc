@@ -63,10 +63,11 @@ void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t
 		 */
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
 		#ifdef DEBUGE_MODE
-			printf("%zu\n", offsets_ptr.size());
+			printf("%zu\n offsets", offsets_ptr.size());
 		#endif
 		std::vector <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
+		it_offset++;
 		for ( size_t iter_p = 1; iter_p < offsets_ptr.size() + 1; iter_p++, it_offset++) { /* save all pointers in object */
 			descr = {*it_offset, 0}; /* save pointers in descriptor */
 			/*

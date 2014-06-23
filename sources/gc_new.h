@@ -109,12 +109,11 @@ bool hasOffsets (void) {
 */
 template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
-size_t old_current_pointer_to_object = current_pointer_to_object;
-
+	size_t old_current_pointer_to_object = current_pointer_to_object;
 	bool old_no_active = no_active;
 	counter += sizeof(T);  /* num of space that we used ++ */
 	if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
-		mark_and_sweep();
+		// mark_and_sweep();
 		counter = 0;
 	}
 
@@ -132,6 +131,9 @@ size_t old_current_pointer_to_object = current_pointer_to_object;
 	meta<T>* m_inf = NULL;
 
 	res = malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
+	#ifdef DEBUGE_MODE
+		printf("create object %p\n", res);
+	#endif
 	/* save current pointer to the allocating object */
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
 	transfer_to_automatic_objects(res);
@@ -139,6 +141,13 @@ size_t old_current_pointer_to_object = current_pointer_to_object;
 		new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
 		*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
 		m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
+		#ifdef DEBUGE_MODE
+				// print offsets
+			for (int i = 0; i < offsets.size(); i++) {
+				printf("%zu ", offsets[i]);
+			}
+			printf("\n");
+		#endif
 		if (offsets.empty()){
 			if (clMeta) {
 				m_inf->shell = clMeta; 
@@ -180,7 +189,7 @@ size_t old_current_pointer_to_object = current_pointer_to_object;
 
 	/* restore old global variable values */
 	new_active = false;
-	temp.swap(offsets);
+	offsets.swap(temp);
 	current_pointer_to_object = old_current_pointer_to_object;
 	nesting_level--;
 	no_active = old_no_active;

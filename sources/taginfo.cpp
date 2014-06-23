@@ -64,8 +64,6 @@ void * create_boxed_array(size_t size, void * clMeta, size_t typeSize) {
 			fflush(stdout);
 		#endif
 		*(BLOCK_TAG *)result = tag;
-		// *(size_t *)((char *)result + sizeof(BLOCK_TAG)) = *(size_t *)clMeta;
-		// printf("create_boxed_array: %p %p %p\n", ((char *)result + sizeof(BLOCK_TAG)), (char *)clMeta, clMeta);
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_boxed_array.");
 		fflush(stdout);	
