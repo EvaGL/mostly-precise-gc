@@ -6,7 +6,9 @@
 #include "gc_new.h"
 #include "go.h"
 #include <cstdio>
+#include "stack.h"
 
+StackMap stack_ptr = StackMap::create_StackMap_instance(); //!< stack of stack pointers
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;  /* create mutex for locking function of allocating */
 std::vector <size_t> offsets;
 bool new_active = false; /* global flag. False -- out gc_new, true -- in gc_new*/

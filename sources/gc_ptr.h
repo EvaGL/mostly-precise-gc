@@ -4,7 +4,6 @@
 *****************************************************************************************/
 
 #pragma once
-#include "collect.h"
 #include <cstdio>
 #include "stack.h"
 #include <stdint.h>
@@ -18,6 +17,9 @@
 #define is_composite_pointer(x)	(bool) ((uintptr_t)x & (uintptr_t)2)
 #define clear_stack_flag(x)		(void *) ((uintptr_t)x & ~(uintptr_t)1)
 #define clear_both_flags(x)		(void *) ((uintptr_t)x & ~(uintptr_t)3)
+
+#define inc(p) stack_ptr.register_stack_root(p)
+#define dec() stack_ptr.delete_stack_root()
 
 extern StackMap stack_ptr;
 extern std::vector <size_t> offsets;
