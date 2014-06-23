@@ -72,7 +72,7 @@ void changeTree (gc_ptr<Node> node, const char * str) {
 
 void func () {
 	gc_ptr<Node> node;
-	node = createTree(5);
+	node = createTree(10);
 	mark_and_sweep();
 
 	// print(node);
