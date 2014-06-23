@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <pthread.h>
 #include "go.h"
-#include "boxing2.h"
 #include "taginfo.h"
 #include <typeinfo>
 #include "meta_information.h"
@@ -82,7 +81,7 @@ bool hasOffsets (void) {
 		if (clMeta) {
 			m_inf->shell = clMeta; 
 		} else {
-			m_inf->shell = generic_box_simple (); /* create new type - box, save in shell */
+			m_inf->shell = create_generic_object(0, 0, 1); /* create new type - box, save in shell */
 			addNewClassMetaInformation(typeidName, m_inf->shell);
 		}
 	} else {
@@ -152,7 +151,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 			if (clMeta) {
 				m_inf->shell = clMeta; 
 			} else {
-				m_inf->shell = generic_box_simple (); /* create new type - box, save in shell */
+				m_inf->shell = create_generic_object(0, 0, 1); /* create new type - box, save in shell */
 				addNewClassMetaInformation(typeidName, m_inf->shell);
 			}
 		} else {
@@ -176,10 +175,10 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 		if (hasOffsets<T>()) {
 			clMeta = contains(classMeta, typeidName);
 			assert(clMeta != NULL);
-			m_inf->shell = generic_box_boxed_array(count, clMeta, sizeof(T));
+			m_inf->shell = create_boxed_array(count, clMeta, sizeof(T));
 		} else {
 			clMeta = contains(classMeta, typeidName);
-			m_inf->shell = generic_box_unboxed_array(count);
+			m_inf->shell = create_unboxed_array(count);
 		}
 		assert(clMeta != NULL);
 	}
