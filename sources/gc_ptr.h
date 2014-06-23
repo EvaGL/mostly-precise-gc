@@ -9,7 +9,7 @@
 #include "stack.h"
 #include <stdint.h>
 
-#define DEBUGE_MODE
+// #define DEBUGE_MODE
 
 #define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
 #define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
