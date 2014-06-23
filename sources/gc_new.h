@@ -67,7 +67,6 @@ bool hasOffsets (void) {
 	std::vector<size_t> temp;
 	temp.swap(offsets);
 	size_t old_current_pointer_to_object = current_pointer_to_object;
-
 	const char * typeidName = typeid(T).name();
 	void * clMeta = contains(classMeta, typeidName);
 	void * res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
@@ -148,6 +147,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 		m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
 		#ifdef DEBUGE_MODE
 				// print offsets
+		printf("gc_new: offsets: ");
 			for (int i = 0; i < offsets.size(); i++) {
 				printf("%zu ", offsets[i]);
 			}

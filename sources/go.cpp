@@ -96,7 +96,7 @@ void go (void * v) {
 					for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 						void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
 						#ifdef DEBUGE_MODE
-							printf("offset: %zu\n", (*((POINTER_DESCR *)this_offsets)).offset);
+							printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
 						#endif
 						if (p) {
 							go(get_next_obj(p));  /* go deeper and mark*/
