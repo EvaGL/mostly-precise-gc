@@ -21,9 +21,10 @@ public:
 	
 	int size () {	return length;	};
 	void print () {
+		std::cerr<<length<<" ";
 		for (int i = 0; i < length; i++) {
-			std::cout << pData[i];
+			std::cerr << pData[i];
 		}
-		std::cout << std::endl;
+		std::cerr << "\n";
 	};
 };

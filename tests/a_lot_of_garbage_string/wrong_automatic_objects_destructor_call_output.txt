@@ -1,0 +1,138 @@
+gc_ptr() { 0x7fff6c82bd10
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bd10) {
+gc_ptr() { 0x7fff6c82bcc0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bcc0) {
+gc_new start 0
+gc_new end 0
+gc_ptr(T* p) { 0x7fff6c82bcd0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bcd0) {
+delete stack root: 0x7fff6c82bcd0
+void StackMap::delete_stack_root() { 0x7fff6c82bcd0
+new StackMap top=>addr { 0x7fff6c82bcc0
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bcc0) { 0x7fff6c82bce0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bce0) {
+gc_new<Node>();1
+before m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 256 
+        total free space: 3840
+roots: root (nil) go: alive: 0x2040030 0x2040058
+root 0x2040058 root 0x2040058 
+root count = 3; live_object_count = 1
+after m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 192 
+        total free space: 3904
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bce0) { 0x7fff6c82bc60
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bc60) {
+gc_new start 0
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bc60) { 0x7fff6c82bb40
+gc_ptr() { 0x20400f8
+gc_ptr() { 0x2040100
+gc_ptr() { 0x2040108
+offsets.size() = 3
+gc_new end 0
+gc_ptr(T* p) { 0x7fff6c82bc50
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bc50) {
+delete stack root: 0x7fff6c82bc60
+void StackMap::delete_stack_root() { 0x7fff6c82bc50
+new StackMap top=>addr { 0x7fff6c82bc60
+res: 1 1 points to 0x20400f8 this: 0x7fff6c82bc50
+gc_new<Node>() --- 2 m&s;1 1 points to 0x20400f8 this: 0x7fff6c82bc50
+before m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 272 
+        total free space: 3824
+roots: root (nil) go: alive: 0x2040030 0x2040058
+root 0x2040058 root 0x2040058 root 0x2040058 
+root count = 4; live_object_count = 1
+after m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 192 
+        total free space: 3904
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bc50) { 0x7fff6c82bd20
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bd20) {
+delete stack root: 0x7fff6c82bc50
+void StackMap::delete_stack_root() { 0x7fff6c82bd20
+new StackMap top=>addr { 0x7fff6c82bc60
+delete stack root: 0x7fff6c82bce0
+void StackMap::delete_stack_root() { 0x7fff6c82bc60
+new StackMap top=>addr { 0x7fff6c82bce0
+delete stack root: 0x7fff6c82bcc0
+void StackMap::delete_stack_root() { 0x7fff6c82bce0
+new StackMap top=>addr { 0x7fff6c82bcc0
+delete stack root: 0x7fff6c82bd20
+void StackMap::delete_stack_root() { 0x7fff6c82bcc0
+new StackMap top=>addr { 0x7fff6c82bd10
+func: before m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 192 
+        total free space: 3904
+roots: go: alive: 0x20400d0 0x20400f8
+root 0x20400f8 
+root count = 1; live_object_count = 1
+after m&s dlmalloc info: 
+        number of free chunks: 1 
+        maximum total allocated space: 4096 
+        total allocated space: 32 
+        total free space: 4064
+changechangegc_new start 0
+gc_ptr() { 0x2040060
+gc_new start 1
+gc_new end 1
+gc_ptr(T* p) { 0x7fff6c82bc10
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bc10) {
+delete stack root: 0x7fff6c82bc10
+void StackMap::delete_stack_root() { 0x7fff6c82bc10
+new StackMap top=>addr { 0x7fff6c82bd10
+offsets.size() = 1
+gc_new end 0
+gc_ptr(T* p) { 0x7fff6c82bd30
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bd30) {
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bd30) { 0x7fff6c82bd50
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bd50) {
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bd10) { 0x7fff6c82bd40
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bd40) {
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bd50) { 0x7fff6c82bce0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bce0) {
+delete stack root: 0x7fff6c82bce0
+void StackMap::delete_stack_root() { 0x7fff6c82bce0
+new StackMap top=>addr { 0x7fff6c82bd40
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bd50) { 0x7fff6c82bce0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bce0) {
+gc_ptr(const gc_ptr <T> &p = 0x2040100) { 0x7fff6c82bcd0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bcd0) {
+delete stack root: 0x7fff6c82bcd0
+void StackMap::delete_stack_root() { 0x7fff6c82bcd0
+new StackMap top=>addr { 0x7fff6c82bce0
+delete stack root: 0x7fff6c82bce0
+void StackMap::delete_stack_root() { 0x7fff6c82bce0
+new StackMap top=>addr { 0x7fff6c82bd40
+gc_ptr(const gc_ptr <T> &p = 0x7fff6c82bd50) { 0x7fff6c82bce0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bce0) {
+gc_ptr(const gc_ptr <T> &p = 0x2040108) { 0x7fff6c82bcd0
+void StackMap::register_stack_root(void* newAddr = 0x7fff6c82bcd0) {
+delete stack root: 0x7fff6c82bcd0
+void StackMap::delete_stack_root() { 0x7fff6c82bcd0
+new StackMap top=>addr { 0x7fff6c82bce0
+delete stack root: 0x7fff6c82bce0
+void StackMap::delete_stack_root() { 0x7fff6c82bce0
+new StackMap top=>addr { 0x7fff6c82bd40
+delete stack root: 0x7fff6c82bd40
+void StackMap::delete_stack_root() { 0x7fff6c82bd40
+new StackMap top=>addr { 0x7fff6c82bd50
+delete stack root: 0x7fff6c82bd50
+void StackMap::delete_stack_root() { 0x7fff6c82bd50
+new StackMap top=>addr { 0x7fff6c82bd30
+func: end
+before m&s dlmalloc info: 
+        number of free chunks: 2 
+        maximum total allocated space: 4096 
+        total allocated space: 256 
+        total free space: 3840
+Segmentation fault
