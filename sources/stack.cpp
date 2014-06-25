@@ -56,7 +56,7 @@ StackMap StackMap::create_StackMap_instance(
 
 void StackMap::register_stack_root(void * newAddr) {
 	#ifdef DEBUG_MODE
-		printf("void StackMap::register_stack_root(void* newAddr) {\n");
+		printf("void StackMap::register_stack_root(void* newAddr = %p) {\n", newAddr);
 		fflush(stdout);
 	#endif
 	if (top + add_page_parameter > end_of_mapped_space) {
@@ -91,11 +91,38 @@ void StackMap::register_stack_root(void * newAddr) {
 	#endif
 }
 
-void StackMap::delete_stack_root() {
+void StackMap::delete_stack_root(void * address) {
 	#ifdef DEBUG_MODE
-		printf("void StackMap::delete_stack_root() {\n");
+		printf("void StackMap::delete_stack_root() { %p\n", top->addr);
 		fflush(stdout);
 	#endif
+
+	if (top->addr != address) {
+		// if it is so, then automatic objects dectructs
+		// not in the reverse order with their constructors
+		// so we need to find and replace object that might be deleted
+		// by object that is on the top
+		#ifdef DEBUG_MODE
+			printf("wrong element on the top "); fflush(stdout);
+		#endif
+		StackElement * temp = top;
+		while (temp >= map_begin) {
+			if (temp->addr == address) {
+				temp->addr = top->addr;
+				#ifdef DEBUG_MODE
+					printf("; found correct\n"); fflush(stdout);
+				#endif
+				break;
+			}
+			temp -- ;
+		}
+		if (temp->addr != top->addr) {
+			#ifdef DEBUG_MODE
+				printf(";does not correct\n"); fflush(stdout);
+			#endif
+		}
+	}
+
 	top --;
 	assert(top >= map_begin);
 	if (top + free_page_parameter < end_of_mapped_space)

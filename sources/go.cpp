@@ -9,13 +9,19 @@
 #include "stack.h"
 #include "fake_roots.h"
 #include <stdint.h>
+#include "go.h"
 
-#ifdef DEBUGE_MODE
-	#undef DEBUGE_MODE
-#endif
+// #ifdef DEBUGE_MODE
+// 	#undef DEBUGE_MODE
+// #endif
 // #define DEBUGE_MODE
 
 extern StackMap stack_ptr;
+extern int nesting_level;
+
+#ifdef DEBUGE_MODE
+	size_t live_object_count = 0;
+#endif
 
 void * get_ptr (void * ptr) {
 	if (is_composite_pointer(ptr)) {
@@ -65,7 +71,15 @@ void go (void * v) {
 		}
 		
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
-
+		#ifdef DEBUGE_MODE
+			printf("base_meta %p\n", bm);
+			fflush(stdout);
+			if (!is_heap_pointer(bm)) {
+				printf("NOT HEAP bm \n");
+				fflush(stdout);
+				return;
+			}
+		#endif
 		if (get_mark(bm) != 0) {// || get_mark(v) != 0) { /* if marked --- return*/
 			#ifdef DEBUGE_MODE
 				printf("%p %p already marked\n ", bm, v);
@@ -81,6 +95,8 @@ void go (void * v) {
 
 		mark(bm);
 		#ifdef DEBUGE_MODE
+			live_object_count++;
+			printf("go: alive: %p %p\n", bm, v);
 			printf("mark object %p\n", bm);
 			printf("tag->model:%i object: %p\n", tag->model, bm);
 			fflush(stdout);
@@ -145,20 +161,44 @@ void go (void * v) {
 	}
 }
 
+void gc () {
+	#ifdef DEBUGE_MODE
+		printf("in gc"); fflush(stdout);
+	#endif
+	if (nesting_level == 0) {
+		#ifdef DEBUGE_MODE
+			printf("gc: mark_and_sweep\n");
+			fflush(stdout);
+		#endif
+		mark_and_sweep();
+	}
+	#ifdef DEBUGE_MODE
+		printf("\n"); fflush(stdout);
+	#endif
+}
+
 void mark_and_sweep () {
-	printf("before m&s "); printDlMallocInfo();
+	printf("before m&s "); printDlMallocInfo(); fflush(stdout);
 	mark_fake_roots();
 	
 	#ifdef DEBUGE_MODE
+		live_object_count = 0;
 		printf("mark\n"); fflush(stdout);
+		int i = 0;
+		printf("roots: ");
 	#endif
 	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+		#ifdef DEBUGE_MODE
+			i++;
+			printf("root %p ", get_next_obj(*root));
+		#endif
 	}
-
 	#ifdef DEBUGE_MODE
+		printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
+		live_object_count = 0;
 		printf("sweep"); fflush(stdout);
 	#endif
 	sweep();
-	printf("after m&s "); printDlMallocInfo();
+	printf("after m&s "); printDlMallocInfo(); fflush(stdout);
 }

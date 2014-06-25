@@ -50,7 +50,7 @@ public:
 	void register_stack_root (void * newAddr);
 
 	/// delete last-added element
-	void delete_stack_root ();
+	void delete_stack_root (void * address);
 
 	void set_length		(size_t new_size);
 	size_t get_length	();

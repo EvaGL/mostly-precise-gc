@@ -15,6 +15,18 @@ void go (void *v);
 /**
  \fn mark_and_sweep - mark and delete garbage
  */
-void mark_and_sweep (); 
+void mark_and_sweep ();
+ #ifndef HEADER_FILE
+ #define HEADER_FILE
+
+ #ifdef __cplusplus
+     extern "C" {
+ #endif
+         void gc ();
+ #ifdef __cplusplus
+     }
+ #endif
+
+ #endif
 
 inline void* get_next_obj (void *v);

@@ -24,6 +24,8 @@ extern MetaInformation * classMeta;
 extern int nesting_level;
 extern size_t current_pointer_to_object;
 
+// #define DEBUGE_MODE
+
 /**
 * @class meta information
 * @brief stored significant for collecting information
@@ -63,13 +65,15 @@ public:
 
 template <class T>
 bool hasOffsets (void) {
+	nesting_level++;
 	/* save global variable values*/
 	std::vector<size_t> temp;
 	temp.swap(offsets);
 	size_t old_current_pointer_to_object = current_pointer_to_object;
 	const char * typeidName = typeid(T).name();
 	void * clMeta = contains(classMeta, typeidName);
-	void * res = malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
+	/* allocate space */
+	void * res = my_malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
 	transfer_to_automatic_objects(res);
 	new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T();
@@ -102,7 +106,7 @@ bool hasOffsets (void) {
 	/* restore old global variable values */
 	temp.swap(offsets);
 	current_pointer_to_object = old_current_pointer_to_object;
-	
+	nesting_level--;
 	return result;
 }
 
@@ -113,19 +117,22 @@ bool hasOffsets (void) {
 */
 template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
+#ifdef DEBUGE_MODE
+	printf("gc_new start %i\n", nesting_level);
+#endif
 	size_t old_current_pointer_to_object = current_pointer_to_object;
 	bool old_no_active = no_active;
 	counter += sizeof(T);  /* num of space that we used ++ */
-	if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
+	// if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
 		// mark_and_sweep();
-		counter = 0;
-	}
+		// counter = 0;
+	// }
 
 	void *res = NULL; /* ninitialize object which will be store the result */
 	assert(count >= 0);
 
 	new_active = true;  /* set flag that object creates(allocates) in heap */
-	nesting_level++;
+// nesting_level++;
 	/* save old offsets */
 	std::vector<size_t> temp;
 	temp.swap(offsets);
@@ -134,25 +141,42 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	void * clMeta = contains(classMeta, typeidName); // get pointer to class meta or NULL if it is no meta for this class
 	meta<T>* m_inf = NULL;
 
-	res = malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
-	#ifdef DEBUGE_MODE
-		printf("create object %p\n", res);
-	#endif
+#ifdef DEBUGE_MODE
+	printf("malloc: ");
+#endif
+	
+	res = my_malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
+	nesting_level++;
+	
+#ifdef DEBUGE_MODE
+	printf("create object %p\n", res);
+#endif
 	/* save current pointer to the allocating object */
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
 	transfer_to_automatic_objects(res);
 	if (count == 1) {
+	#ifdef DEBUGE_MODE
+		printf("single object: "); fflush(stdout);
+		new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
+		printf("templ_new; "); fflush(stdout);
+		*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
+		printf("init meta; "); fflush(stdout);
+		m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
+		printf("cast meta; "); fflush(stdout);
+	#else
 		new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
 		*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
 		m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
-		#ifdef DEBUGE_MODE
-				// print offsets
-		printf("gc_new: offsets: ");
-			for (int i = 0; i < offsets.size(); i++) {
-				printf("%zu ", offsets[i]);
-			}
-			printf("\n");
-		#endif
+	#endif
+	#ifdef DEBUGE_MODE
+			// print offsets
+		printf("offsets.size() = %i\n", offsets.size());
+		printf("gc_new: offsets: "); fflush(stdout);
+		for (int i = 0; i < offsets.size(); i++) {
+			printf("%zu ", offsets[i]);
+		}
+		printf("\n");
+	#endif
 		if (offsets.empty()){
 			if (clMeta) {
 				m_inf->shell = clMeta; 
@@ -170,6 +194,9 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 			}
 		}
 	} else {
+	#ifdef DEBUGE_MODE
+		printf("array: "); fflush(stdout);
+	#endif
 		no_active = true; // offsets wont counting yet
 		new ((char *)res + sizeof(void *) + sizeof(meta<T>)) T[count];
 		*((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
@@ -198,7 +225,9 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	current_pointer_to_object = old_current_pointer_to_object;
 	nesting_level--;
 	no_active = old_no_active;
-
+#ifdef DEBUGE_MODE
+	printf("gc_new end %i\n", nesting_level);
+#endif
 	/*return ptr on allocated space, begining value */
 	return gc_ptr<T>((T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)));
 }

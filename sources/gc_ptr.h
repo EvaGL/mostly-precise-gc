@@ -9,6 +9,9 @@
 #include <stdint.h>
 
 // #define DEBUGE_MODE
+#define my_malloc space_based_malloc
+// #define my_malloc no_space_malloc
+// #define my_malloc malloc
 
 #define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
 #define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
@@ -19,7 +22,7 @@
 #define clear_both_flags(x)		(void *) ((uintptr_t)x & ~(uintptr_t)3)
 
 #define inc(p) stack_ptr.register_stack_root(p)
-#define dec() stack_ptr.delete_stack_root()
+#define dec(p) stack_ptr.delete_stack_root(p)
 
 extern StackMap stack_ptr;
 extern std::vector <size_t> offsets;
@@ -62,52 +65,60 @@ private:
 
 	// only for gc_new
 	gc_ptr (T* p) {
-		#ifdef DEBUGE_MODE
-			printf("gc_ptr(T* p) { %p\n", this);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("gc_ptr(T* p) { %p\n", this);
+	#endif
 		ptr = (void *) p;
 		if (no_active) {
+		#ifdef DEBUGE_MODE
 			printf("\tno_active\n");
+		#endif
 			return;
 		}
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-			#ifdef DEBUGE_MODE
-				printf("\tstack\n");
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("\tstack\n");
+		#endif
 		} else if (is_heap_pointer(this)) {
-			#ifdef DEBUGE_MODE
-				printf("\theap\n");
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("\theap\n");
+		#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
 	}
 
 public:
+	bool is_stack_ptr () {
+		return is_stack_pointer(ptr);
+	}
+
 	/**	\fn construct gc_ptr()
 		\brief setting ptr on null
 	*/
 	gc_ptr () {
-		#ifdef DEBUGE_MODE
-			printf("gc_ptr() { %p\n", this);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("gc_ptr() { %p\n", this);
+	#endif
 		ptr = 0;
 		if (no_active) {
+		#ifdef DEBUGE_MODE
 			printf("\tno_active\n");
+		#endif
 			return;
 		}
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-			#ifdef DEBUGE_MODE
-				printf("\tstack\n");
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("\tstack\n");
+		#endif
 		} else if (is_heap_pointer(this)) {
-			#ifdef DEBUGE_MODE
-				printf("\theap\n");
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("\theap\n");
+		#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -117,14 +128,17 @@ public:
 		\brief setting pointer on given adress type of T 			
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
-		#ifdef DEBUGE_MODE
-			printf("gc_ptr(const gc_ptr <T> &p) { %p\n", this);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("gc_ptr(const gc_ptr <T> &p = %p) { %p\n", &p, this);
+	#endif
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
 		if (is_composite_pointer(p.ptr)) {
 			((Composite_pointer *)(clear_both_flags(p.ptr)))->ref_count++;
 		}
 		if (no_active) {
+		#ifdef DEBUGE_MODE
+			printf("\tno_active\n");
+		#endif
 			return;
 		}
 		if (!new_active) {
@@ -140,27 +154,27 @@ public:
 		\brief delete current gc_ptr from special ptr_list  			
 	*/
 	~gc_ptr () {
-		#ifdef DEBUGE_MODE
-			printf("~gc_ptr: %p; ", this);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("~gc_ptr: %p; ", this);
+	#endif
 		if (is_stack_pointer(ptr)) {
-			#ifdef DEBUGE_MODE
-				printf("stack ptr; ");
-			#endif
-			dec();
+		#ifdef DEBUGE_MODE
+			printf("~gc_ptr -> delete stack root: %p\n", this);
+		#endif
+			dec(this);
 		}
 
 		if (is_composite_pointer(ptr)) {
-			#ifdef DEBUGE_MODE
-				printf("composite ptr; ");
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("composite ptr; ");
+		#endif
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
-		#ifdef DEBUGE_MODE
-			printf("~gc_ptr: ends\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("~gc_ptr: ends\n");
+	#endif
 	}
 
 	/* reloaded operators for gc_ptrs objects*/
@@ -181,9 +195,9 @@ public:
 	operator bool () const 					{	return get_ptr(ptr) != NULL;							}
 
 	gc_ptr& operator = (const gc_ptr <T> &a) {
-		#ifdef DEBUGE_MODE
-			printf("gc_ptr& operator =\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("gc_ptr& operator =\n");
+	#endif
 		if (is_composite_pointer(ptr)) {
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);
@@ -207,16 +221,16 @@ public:
 	*/
 	template <typename R>
 	void attach (T * pointer, gc_ptr<R> base) {
-		#ifdef DEBUGE_MODE
-			printf("attach %p \n", (void *)base);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("attach %p \n", (void *)base);
+	#endif
 		if (is_composite_pointer(ptr)) {
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
 
-		Composite_pointer * cp = (Composite_pointer *) malloc (sizeof(Composite_pointer)); {
+		Composite_pointer * cp = (Composite_pointer *) my_malloc (sizeof(Composite_pointer)); {//malloc (sizeof(Composite_pointer)); {
 			cp->base		= (void *) base;
 			cp->pointer		= (void *) pointer;
 			cp->ref_count	= 1;
