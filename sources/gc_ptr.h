@@ -7,11 +7,15 @@
 #include <cstdio>
 #include "stack.h"
 #include <stdint.h>
+#include <msmalloc.h>
 
 // #define DEBUGE_MODE
-#define my_malloc space_based_malloc
-// #define my_malloc no_space_malloc
+#define my_malloc no_space_malloc
+// #define my_malloc space_based_malloc
+// #define my_malloc timed_malloc
+// #define my_malloc stupid_malloc
 // #define my_malloc malloc
+
 
 #define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
 #define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
