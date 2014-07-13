@@ -28,6 +28,7 @@ void * get_ptr (void * ptr) {
 		#ifdef DEBUGE_MODE
 				printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
 		#endif
+		mark(clear_both_flags(ptr));
 		return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
 	} else {
 		#ifdef DEBUGE_MODE
