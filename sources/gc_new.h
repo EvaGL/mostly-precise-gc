@@ -15,7 +15,7 @@
 #include <msmalloc.h>
 #include "gc_ptr.h"
 
-extern pthread_mutex_t mut;  
+extern StackMap stack_ptr;
 extern bool new_active;
 extern bool no_active;
 extern size_t counter;
@@ -34,6 +34,7 @@ extern size_t current_pointer_to_object;
 class base_meta {
 public:
 	void *shell; /**< pointer on the box(meta info struct for storing offsets) of object */
+	void * ptrptr;
 	size_t size; /**< size of object */
 	virtual void del_ptr () = 0; /**< delete meta-ptr */
 	virtual void* get_begin () = 0; /**< get begin of object(pointer on meta)*/
@@ -50,6 +51,9 @@ public:
 	T* ptr;
 
 	void del_ptr (void) {
+	#ifdef DEBUGE_MODE
+		printf("in del_ptr\n"); fflush(stdout);
+	#endif
 		if (size == 1) {
 			((T*)ptr)->~T();
 		} else {
@@ -59,12 +63,18 @@ public:
 	}
 
 	void* get_begin (void) {
+	#ifdef DEBUGE_MODE
+		printf("in get_begin\n"); fflush(stdout);
+	#endif
 		return reinterpret_cast <void*> (this);
 	}
 };
 
 template <class T>
 bool hasOffsets (void) {
+#ifdef DEBUGE_MODE
+	printf("in hasOffsets\n"); fflush(stdout);
+#endif
 	nesting_level++;
 	/* save global variable values*/
 	std::vector<size_t> temp;
@@ -122,17 +132,10 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 #endif
 	size_t old_current_pointer_to_object = current_pointer_to_object;
 	bool old_no_active = no_active;
-	counter += sizeof(T);  /* num of space that we used ++ */
-	// if (counter > 50000000 && nesting_level == 0) {/* if occupated place more than 50000000 lets start to collect */
-		// mark_and_sweep();
-		// counter = 0;
-	// }
-
 	void *res = NULL; /* ninitialize object which will be store the result */
 	assert(count >= 0);
 
 	new_active = true;  /* set flag that object creates(allocates) in heap */
-// nesting_level++;
 	/* save old offsets */
 	std::vector<size_t> temp;
 	temp.swap(offsets);
@@ -142,18 +145,24 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	meta<T>* m_inf = NULL;
 
 #ifdef DEBUGE_MODE
-	printf("malloc: ");
+	printf("malloc: "); fflush(stdout);
 #endif
-	
+
 	res = my_malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));  /* allocate space */
 	nesting_level++;
-	
+
 #ifdef DEBUGE_MODE
-	printf("create object %p\n", res);
+	printf("create object %p", res); fflush(stdout);
 #endif
 	/* save current pointer to the allocating object */
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
+#ifdef DEBUGE_MODE
+	printf("casted "); fflush(stdout);
+#endif
 	transfer_to_automatic_objects(res);
+#ifdef DEBUGE_MODE
+	printf(" transfered ro automatic\n"); fflush(stdout);
+#endif
 	if (count == 1) {
 	#ifdef DEBUGE_MODE
 		printf("single object: "); fflush(stdout);
@@ -218,6 +227,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 
 	m_inf->size = count;  /* count of offsets */
 	m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
+	m_inf->ptrptr = (void *)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 
 	/* restore old global variable values */
 	new_active = false;
@@ -226,8 +236,9 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	nesting_level--;
 	no_active = old_no_active;
 #ifdef DEBUGE_MODE
-	printf("gc_new end %i\n", nesting_level);
+	printf("gc_new end %i\n", nesting_level); fflush(stdout);
 #endif
 	/*return ptr on allocated space, begining value */
+
 	return gc_ptr<T>((T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)));
 }

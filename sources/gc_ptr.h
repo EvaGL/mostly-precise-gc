@@ -10,12 +10,11 @@
 #include <msmalloc.h>
 
 // #define DEBUGE_MODE
-#define my_malloc no_space_malloc
+// #define my_malloc no_space_malloc
 // #define my_malloc space_based_malloc
 // #define my_malloc timed_malloc
-// #define my_malloc stupid_malloc
+#define my_malloc stupid_malloc
 // #define my_malloc malloc
-
 
 #define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
 #define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
@@ -26,7 +25,7 @@
 #define clear_both_flags(x)		(void *) ((uintptr_t)x & ~(uintptr_t)3)
 
 #define inc(p) stack_ptr.register_stack_root(p)
-#define dec(p) stack_ptr.delete_stack_root(p)
+// #define dec(p) stack_ptr.delete_stack_root(p)
 
 extern StackMap stack_ptr;
 extern std::vector <size_t> offsets;
@@ -52,6 +51,9 @@ private:
 	void * ptr; /**< pointer on specified type*/
 
 	void * get_base_ptr (void * ptr) {
+	#ifdef DEBUGE_MODE
+		printf("get_base_ptr\n"); fflush(stdout);
+	#endif
 		if (is_composite_pointer(ptr)) {
 			return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
 		} else {
@@ -60,6 +62,9 @@ private:
 	}
 
 	T * get_ptr (void * pointer) const {
+	#ifdef DEBUGE_MODE
+		printf("T * get_ptr\n"); fflush(stdout);
+	#endif
 		if (is_composite_pointer(pointer)) {
 			return reinterpret_cast<T *>( (((Composite_pointer *)(clear_both_flags(pointer)))->pointer));
 		} else {
@@ -74,21 +79,21 @@ private:
 	#endif
 		ptr = (void *) p;
 		if (no_active) {
-		#ifdef DEBUGE_MODE
-			printf("\tno_active\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\tno_active\n");
+	#endif
 			return;
 		}
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-		#ifdef DEBUGE_MODE
-			printf("\tstack\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\tstack\n");
+	#endif
 		} else if (is_heap_pointer(this)) {
-		#ifdef DEBUGE_MODE
-			printf("\theap\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\theap\n");
+	#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -96,6 +101,9 @@ private:
 
 public:
 	bool is_stack_ptr () {
+	#ifdef DEBUGE_MODE
+		printf("get_stack_ptr\n"); fflush(stdout);
+	#endif
 		return is_stack_pointer(ptr);
 	}
 
@@ -104,25 +112,25 @@ public:
 	*/
 	gc_ptr () {
 	#ifdef DEBUGE_MODE
-		printf("gc_ptr() { %p\n", this);
+		printf("gc_ptr() { %p\n", this); fflush(stdout);
 	#endif
 		ptr = 0;
 		if (no_active) {
-		#ifdef DEBUGE_MODE
-			printf("\tno_active\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\tno_active\n");
+	#endif
 			return;
 		}
 		if (!new_active) {
 			inc(this);
 			ptr = set_stack_flag(ptr);
-		#ifdef DEBUGE_MODE
-			printf("\tstack\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\tstack\n");
+	#endif
 		} else if (is_heap_pointer(this)) {
-		#ifdef DEBUGE_MODE
-			printf("\theap\n");
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\theap\n");
+	#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -133,7 +141,7 @@ public:
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
 	#ifdef DEBUGE_MODE
-		printf("gc_ptr(const gc_ptr <T> &p = %p) { %p\n", &p, this);
+		printf("gc_ptr (const ...)\n"); fflush(stdout);
 	#endif
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
 		if (is_composite_pointer(p.ptr)) {
@@ -146,12 +154,22 @@ public:
 			return;
 		}
 		if (!new_active) {
+		#ifdef DEBUGE_MODE
+			printf("\tstack pointer\n");
+		#endif
 			inc(this);
 			ptr = set_stack_flag(ptr);
 		} else if (is_heap_pointer(this)) {
+		#ifdef DEBUGE_MODE
+			printf("\theap pointer\n");
+		#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
+	}
+
+	gc_ptr (gc_ptr <T> &&p) {
+		ptr = clear_stack_flag(p.ptr);
 	}
 	
 	/**	\fn destructor gc_ptr()
@@ -159,13 +177,13 @@ public:
 	*/
 	~gc_ptr () {
 	#ifdef DEBUGE_MODE
-		printf("~gc_ptr: %p; ", this);
+		printf("~gc_ptr: %p; ", this); fflush(stdout);
 	#endif
 		if (is_stack_pointer(ptr)) {
 		#ifdef DEBUGE_MODE
 			printf("~gc_ptr -> delete stack root: %p\n", this);
 		#endif
-			dec(this);
+			stack_ptr.delete_stack_root(this);
 		}
 
 		if (is_composite_pointer(ptr)) {
@@ -176,9 +194,9 @@ public:
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
-	#ifdef DEBUGE_MODE
-		printf("~gc_ptr: ends\n");
-	#endif
+#ifdef DEBUGE_MODE
+	printf("~gc_ptr: ends\n");
+#endif
 	}
 
 	/* reloaded operators for gc_ptrs objects*/
@@ -243,6 +261,9 @@ public:
 	}
 
 	void setNULL () {
+	#ifdef DEBUGE_MODE
+		printf("setNULL\n"); fflush(stdout);
+	#endif
 		if (is_composite_pointer(ptr)) {
 			Composite_pointer * cp = (Composite_pointer *) clear_both_flags(ptr);
 			assert(cp->ref_count > 0);

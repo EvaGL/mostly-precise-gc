@@ -22,7 +22,8 @@ void mark_and_sweep ();
  #ifdef __cplusplus
      extern "C" {
  #endif
-         void gc ();
+         int gc ();
+         void gc_delete (void *);
  #ifdef __cplusplus
      }
  #endif

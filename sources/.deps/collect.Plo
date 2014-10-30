@@ -1,0 +1,8 @@
+collect.lo: collect.cpp /usr/include/stdc-predef.h \
+ /usr/include/x86_64-linux-gnu/bits/predefs.h collect.h
+
+/usr/include/stdc-predef.h:
+
+/usr/include/x86_64-linux-gnu/bits/predefs.h:
+
+collect.h:

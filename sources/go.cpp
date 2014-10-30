@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include "go.h"
 
-// #ifdef DEBUGE_MODE
-// 	#undef DEBUGE_MODE
-// #endif
+#ifdef DEBUGE_MODE
+	#undef DEBUGE_MODE
+#endif
 // #define DEBUGE_MODE
 
 extern StackMap stack_ptr;
@@ -24,6 +24,9 @@ extern int nesting_level;
 #endif
 
 void * get_ptr (void * ptr) {
+#ifdef DEBUGE_MODE
+	printf("go.cpp: get_ptr\n"); fflush(stdout);
+#endif
 	if (is_composite_pointer(ptr)) {
 		#ifdef DEBUGE_MODE
 				printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
@@ -38,18 +41,16 @@ void * get_ptr (void * ptr) {
 }
 
 inline void * get_next_obj(void * v) {  /* get the next object*/
-	#ifdef DEBUGE_MODE
-		printf(" get_next_obj %p ", v); fflush(stdout);
-	#endif
-
+#ifdef DEBUGE_MODE
+	printf(" get_next_obj %p ", v); fflush(stdout);
+#endif
 	void * res = reinterpret_cast <void*> (*((size_t *)v));
 	if (res == NULL)
 		return NULL;
 	
-	#ifdef DEBUGE_MODE
-		printf(" res %p\n ", res); fflush(stdout);
-	#endif
-	
+#ifdef DEBUGE_MODE
+	printf(" res %p\n ", res); fflush(stdout);
+#endif
 	return clear_both_flags(res) == NULL ? NULL : get_ptr(res);
 }
 
@@ -59,32 +60,32 @@ inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 
 void go (void * v) {
 	try {
-		#ifdef DEBUGE_MODE
-			printf("\nin go\n");
-			fflush(stdout);
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("\nin go\n");
+		fflush(stdout);
+	#endif
 		if (v == NULL || !is_heap_pointer(v)) {
-			#ifdef DEBUGE_MODE
-				printf(" %p is not a heap pointer\n ", v);
-			#endif
+		#ifdef DEBUGE_MODE
+			printf(" %p is not a heap pointer\n ", v);
+		#endif
 			return;
 		}
 		
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
-		#ifdef DEBUGE_MODE
-			printf("base_meta %p\n", bm);
+	#ifdef DEBUGE_MODE
+		printf("base_meta %p\n", bm);
+		fflush(stdout);
+		if (!is_heap_pointer(bm)) {
+			printf("NOT HEAP bm \n");
 			fflush(stdout);
-			if (!is_heap_pointer(bm)) {
-				printf("NOT HEAP bm \n");
-				fflush(stdout);
-				return;
-			}
-		#endif
+			return;
+		}
+	#endif
 		if (get_mark(bm) != 0) {// || get_mark(v) != 0) { /* if marked --- return*/
-			#ifdef DEBUGE_MODE
-				printf("%p %p already marked\n ", bm, v);
-				fflush(stdout);
-			#endif
+		#ifdef DEBUGE_MODE
+			printf("%p %p already marked\n ", bm, v);
+			fflush(stdout);
+		#endif
 			return;
 		}
 		void *shell = bm->shell;  /* saving ponter on meta object in shell */
@@ -94,26 +95,26 @@ void go (void * v) {
 		}
 
 		mark(bm);
-		#ifdef DEBUGE_MODE
-			live_object_count++;
-			printf("go: alive: %p %p\n", bm, v);
-			printf("mark object %p\n", bm);
-			printf("tag->model:%i object: %p\n", tag->model, bm);
-			fflush(stdout);
-		#endif
+	#ifdef DEBUGE_MODE
+		live_object_count++;
+		printf("go: alive: %p %p\n", bm, v);
+		printf("mark object %p\n", bm);
+		printf("tag->model:%i object: %p\n", tag->model, bm);
+		fflush(stdout);
+	#endif
 
 		switch (tag->model) {
 			case 1: {  /* boxed object */
 					size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
 					void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
-					#ifdef DEBUGE_MODE
-						printf("offset count: %zu\n", n);
-					#endif
+				#ifdef DEBUGE_MODE
+					printf("offset count: %zu\n", n);
+				#endif
 					for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
 						void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
-						#ifdef DEBUGE_MODE
-							printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
-						#endif
+					#ifdef DEBUGE_MODE
+						printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
+					#endif
 						if (p) {
 							go(get_next_obj(p));  /* go deeper and mark*/
 						}
@@ -127,9 +128,9 @@ void go (void * v) {
 					void * poin = v;
 					size_t sizeType = tag->num_of_el, sizeArray = tag->size;
 					for (size_t i = 0; i < sizeArray; i++, poin = (void *)((char *)poin + sizeType)) {
-						#ifdef DEBUGE_MODE
-							printf(" %i ", i);
-						#endif
+					#ifdef DEBUGE_MODE
+						printf(" %i ", i);
+					#endif
 						void * meta = tag->ptr;
 						void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
 						size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
@@ -161,44 +162,63 @@ void go (void * v) {
 	}
 }
 
-void gc () {
-	#ifdef DEBUGE_MODE
-		printf("in gc"); fflush(stdout);
-	#endif
-	if (nesting_level == 0) {
-		#ifdef DEBUGE_MODE
-			printf("gc: mark_and_sweep\n");
-			fflush(stdout);
-		#endif
-		mark_and_sweep();
+int gc () {
+#ifdef DEBUGE_MODE
+	printf("in gc, %i ", nesting_level); fflush(stdout);
+#endif
+	if (nesting_level != 0) {
+		return 1;
 	}
-	#ifdef DEBUGE_MODE
-		printf("\n"); fflush(stdout);
-	#endif
+#ifdef DEBUGE_MODE
+	printf("gc: mark_and_sweep\n");
+	fflush(stdout);
+#endif
+	mark_and_sweep();
+#ifdef DEBUGE_MODE
+	printf("\n"); fflush(stdout);
+#endif
+	return 0;
+}
+
+void operator delete (void *p) {
+// needs check on managed; if true --- not to call free, otherwise call free
+}
+
+void gc_delete (void * chunk) {
+#ifdef DEBUGE_MODE
+	printf("go.cpp: gc_delete\n"); fflush(stdout);
+#endif
+	free(chunk);
 }
 
 void mark_and_sweep () {
-	printf("before m&s "); printDlMallocInfo(); fflush(stdout);
+#ifdef DEBUGE_MODE
+	printf("go.cpp: mark_and_sweep\n"); fflush(stdout);
+#endif
+	printf("mark and sweep!\nbefore:");
+	printDlMallocInfo();
+
 	mark_fake_roots();
-	
-	#ifdef DEBUGE_MODE
-		live_object_count = 0;
-		printf("mark\n"); fflush(stdout);
-		int i = 0;
-		printf("roots: ");
-	#endif
+
+#ifdef DEBUGE_MODE
+	live_object_count = 0;
+	printf("mark\n"); fflush(stdout);
+	int i = 0;
+	printf("roots: ");
+#endif
 	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-		#ifdef DEBUGE_MODE
-			i++;
-			printf("root %p ", get_next_obj(*root));
-		#endif
+#ifdef DEBUGE_MODE
+	i++;
+	printf("root %p ", get_next_obj(*root));
+#endif
 	}
-	#ifdef DEBUGE_MODE
-		printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
-		live_object_count = 0;
-		printf("sweep"); fflush(stdout);
-	#endif
+#ifdef DEBUGE_MODE
+	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
+	live_object_count = 0;
+	printf("sweep"); fflush(stdout);
+#endif
 	sweep();
-	printf("after m&s "); printDlMallocInfo(); fflush(stdout);
+	printf("after: "); printDlMallocInfo(); fflush(stdout);
+	// printf("after m&s "); printDlMallocInfo(); fflush(stdout);
 }

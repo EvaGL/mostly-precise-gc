@@ -1,16 +1,24 @@
 /*************************************************************************************************//**
-        * File: stack.h
-        * Description: This file describes memory pool, represented as mapped continued memory area
+		* File: stack.h
+		* Description: This file describes memory pool, represented as mapped continued memory area
+						Is not a singleton, but has some 'looks like' --- remainder of luxury
 *****************************************************************************************************/
 #pragma once
 #include <unistd.h>
 
+/**
+* @structure --- represents a one stack element;
+* @field addr --- is a pointer on the approptiate gc_ptr
+*/
 struct StackElement {
-	void * addr; //< stored pointer
+	void * addr;
 };
 
 class StackMap;
 
+/**
+* @class realizes an Iterator for StackElement-s in StackMap
+*/
 class Iterator {
 	StackElement * se;
 public:
@@ -29,6 +37,9 @@ public:
 	void * operator* ()						{ return se->addr; }
 };
 
+/**
+* @class --- represents mapped continued memory pool
+*/
 class StackMap {
 protected:
 	StackMap(size_t length1,
@@ -41,9 +52,7 @@ public:
 		size_t length1 = sysconf(_SC_PAGE_SIZE)
 		);
 
-	~StackMap() {
-		StackMap::instance = NULL;
-	}
+	~StackMap();
 
 	/// add new element
 	/// @param stored pointer
@@ -59,13 +68,22 @@ public:
 	Iterator end		();
 
 private:
+	/// singleton
 	static StackMap* instance;
-	int page_size; /// size of creating page in StackElement counts
-	int free_page_parameter; /// difference between top and end_of_free_space, after witch last memory page would be unmapped
-	int add_page_parameter; /// difference between top and end_of_free_space, after witch new memory page would be mapped
-	size_t length; /// page length
-	size_t stackElement_size; /// sizeof StackElement
-	StackElement * map_begin; /// pointer to the mapped memory begin
-	StackElement * top; /// pointer to last stored element
-	StackElement * end_of_mapped_space; /// pointer to the end of mapped memory
+	/// size of creating page in StackElement counts
+	int page_size;
+	/// difference between top and end_of_free_space, after witch last memory page would be unmapped
+	int free_page_parameter;
+	/// difference between top and end_of_free_space, after witch new memory page would be mapped
+	int add_page_parameter;
+	/// one page length
+	size_t length;
+	/// sizeof StackElement
+	size_t stackElement_size;
+	/// pointer to the mapped memory begin
+	StackElement * map_begin;
+	/// pointer to last stored element in the pool
+	StackElement * top;
+	/// pointer to the end of mapped memory
+	StackElement * end_of_mapped_space;
 };

@@ -6,6 +6,9 @@
 #include "taginfo.h"
 #include <sys/mman.h>
 #include <assert.h>
+#include <mutex>
+
+extern std::recursive_mutex mutex_all;
 
 /** 
 * @brief generation box for struct
@@ -14,6 +17,8 @@
 * @return the pointer on object
 */
 void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t num_el) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	void* object; /**< a stored pointer */
 	try {
 		/*
@@ -52,6 +57,8 @@ void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t
 
 /* simple, 1-word object with num 2, struct with num 1*/
 void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	void  * result = NULL;
 	try {	
 		if (descr_length == 0) {
@@ -85,6 +92,8 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 
 /* setting descriptors*/
 void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	try {
 		*((POINTER_DESCR*)((char *)object + sizeof(BLOCK_TAG) + sizeof(size_t) + sizeof(POINTER_DESCR) * (size_t)(iter_p))) = descr;
 	} catch (...) {
@@ -96,6 +105,8 @@ void set_ptr_descr (void* object, unsigned char iter_p, POINTER_DESCR descr) {
 
 /* array of boxed objects*/
 void * create_boxed_array(size_t size, void * clMeta, size_t typeSize) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	void * result = NULL;	
 	try {
 		BLOCK_TAG tag = {TAG_MODEL_3, size, typeSize, clMeta};
@@ -116,6 +127,8 @@ void * create_boxed_array(size_t size, void * clMeta, size_t typeSize) {
 
 /* array of unboxed objects*/
 void * create_unboxed_array(size_t size) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	void * result = NULL;	
 	try{
 		BLOCK_TAG tag = {TAG_MODEL_4, size, 0, NULL};
@@ -135,6 +148,8 @@ void * create_unboxed_array(size_t size) {
 }
 
 PTR_ITERATOR get_iterator (void * object) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	PTR_ITERATOR res_ptr;
 	char * begin_arr;
 	unsigned int i = 0;
@@ -164,6 +179,8 @@ PTR_ITERATOR get_iterator (void * object) {
 }
 
 void * get_ptr (void  * object, size_t index) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	int bitmapsize;
 	char descr_length;
 	char * ptr_obj =  (char *) object;
@@ -194,6 +211,8 @@ void * get_ptr (void  * object, size_t index) {
 }
 
 void * next_ptr (PTR_ITERATOR * iterator) {
+std::lock_guard<std::recursive_mutex> lock(mutex_all);
+
 	void * res_ptr;
 	unsigned int i = 0;
 	char * begin_arr;	
