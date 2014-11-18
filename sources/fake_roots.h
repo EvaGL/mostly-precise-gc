@@ -1,6 +1,14 @@
 /************************************************************************************//**
 		* File: fake_roots.h
-		* Description: realize fake_roots structure in th AVL-tree form
+		* Description: realize fake_roots structure in th AVL-tree form.
+			It can be realized in any other (i.e. hash) data structure.
+		* Detaited: fake root --- is a garbage collection root that is not automatic,
+			i.e. created outside program stack and static memory,
+			and have to be manually registered and deregistered by user.
+			Thous roots represent references from unmanaged objects to the managed.
+		* Unclear: perhapse we need some way to the following:
+			since that reference was created till it be registered
+			garbage collection cannot executes.
 *****************************************************************************************/
 
 #pragma once
@@ -136,10 +144,27 @@ node * remove (node * p, void * k) {
 	return balance(p);
 };
 
+/**
+* @function register_object
+* @brief 
+* @params p --- is a pointer to be registered as a fake root
+* @return nothing
+*/
+/* TODO: return success or not */
 void register_object (void * p) {
 	fake_roots = insert(fake_roots, p);
 };
 
+/**
+* @function unregister_object
+* @brief 
+* @params p --- is a pointer to be unregistered as a fake root;
+*	that pointer have to be manually registered earlier
+* @return nothing
+*/
+/* TODO: needs some check that pointer is valid and contains in
+*	and return success or error code
+*/
 void unregister_object (void * p) {
 	fake_roots = remove(fake_roots, p);
 };
