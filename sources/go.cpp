@@ -1,7 +1,6 @@
 /****************************************************************************************
-        * File: go.cpp
-        * Description: realisation of functions from 'go.h'
-        * Update: 31/03/14
+		* File: go.cpp
+		* Description: realisation of functions from 'go.h'
 *****************************************************************************************/
 
 #include "taginfo.h"
