@@ -1,6 +1,7 @@
 /****************************************************************************************
 		* File: go.cpp
-		* Description: realisation of functions from 'go.h'
+		* Description: functions in this file realizes heap traversing (mark phase)
+			and mark and sweep function
 *****************************************************************************************/
 
 #include "taginfo.h"
@@ -22,24 +23,35 @@ extern int nesting_level;
 	size_t live_object_count = 0;
 #endif
 
+/**
+* @function get_ptr
+* @return pointer that is cleared from glags was setted in gc_ptr
+* @param ptr --- some pointer (really is a pointer to th managed object)
+*/
 void * get_ptr (void * ptr) {
 #ifdef DEBUGE_MODE
 	printf("go.cpp: get_ptr\n"); fflush(stdout);
 #endif
 	if (is_composite_pointer(ptr)) {
-		#ifdef DEBUGE_MODE
-				printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
-		#endif
+	#ifdef DEBUGE_MODE
+			printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
+	#endif
 		mark(clear_both_flags(ptr));
 		return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
 	} else {
-		#ifdef DEBUGE_MODE
-				printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
-		#endif
+	#ifdef DEBUGE_MODE
+			printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
+	#endif
 		return clear_stack_flag(ptr);
 	}
 }
 
+/**
+* @function get_next_obj
+* @return pointer (void *) on the object on that root or gc_ptr "v" points;
+	in case v is invalide pointer to the gc_ptr "v" returns NULL.
+* @param v --- pointer (like gc_ptr)
+*/
 inline void * get_next_obj(void * v) {  /* get the next object*/
 #ifdef DEBUGE_MODE
 	printf(" get_next_obj %p ", v); fflush(stdout);
@@ -54,10 +66,25 @@ inline void * get_next_obj(void * v) {  /* get the next object*/
 	return clear_both_flags(res) == NULL ? NULL : get_ptr(res);
 }
 
+/**
+* @function get_meta_inf
+* @return object of class base_meta (object meta) that is ctored directly with managed object
+* @param v --- pointer to the managed object
+* TODO: it can throw exception in "v"'s incorrect pointer case
+*/
 inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 	return reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *))));
 }
 
+/**
+* @function go
+* @detailed recursive traversing function (implements mark gc phase);
+	marks object as alive and folloeing its object meta,
+	starting from pointer "v", it walk around reached objects graph
+	by calling itself (function go) for all objects object "v" points to;
+* @return nothing
+* @param v --- is a current traversing object (in first call --- roots and fake roots)
+*/
 void go (void * v) {
 	try {
 	#ifdef DEBUGE_MODE
@@ -162,6 +189,11 @@ void go (void * v) {
 	}
 }
 
+/**
+* @function gc
+* @detailed forse garbage collection call for malloc's from msmalloc
+* @return 0 in normal case; 1 in unsafe point case (nesting_level != 0)
+*/
 int gc () {
 #ifdef DEBUGE_MODE
 	printf("in gc, %i ", nesting_level); fflush(stdout);
@@ -180,10 +212,22 @@ int gc () {
 	return 0;
 }
 
-void operator delete (void *p) {
-// needs check on managed; if true --- not to call free, otherwise call free
+/**
+* @override operator delete 
+* @detailed C++ standart garanties destructor call,
+	it is true in our terms iff p --- is valid non-managed object pointer;
+* @param p --- pointer on object to be freed
+*/
+void operator delete (void * p) {
+// TODO: needs check on managed; if true --- not to call free, otherwise call free
+// TODO: then to call
 }
 
+/**
+* @function delete
+* @detailed gc delete function
+* @param chunk --- pointer on chunk to be freed
+*/
 void gc_delete (void * chunk) {
 #ifdef DEBUGE_MODE
 	printf("go.cpp: gc_delete\n"); fflush(stdout);
@@ -191,6 +235,10 @@ void gc_delete (void * chunk) {
 	free(chunk);
 }
 
+/**
+* @function mark_and_sweep
+* @detailed implements mark and sweep stop the world algorithm
+*/
 void mark_and_sweep () {
 #ifdef DEBUGE_MODE
 	printf("go.cpp: mark_and_sweep\n"); fflush(stdout);
@@ -206,18 +254,20 @@ void mark_and_sweep () {
 	int i = 0;
 	printf("roots: ");
 #endif
+	// iterate root stack and call traversing function go
 	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-#ifdef DEBUGE_MODE
-	i++;
-	printf("root %p ", get_next_obj(*root));
-#endif
+	#ifdef DEBUGE_MODE
+		i++;
+		printf("root %p ", get_next_obj(*root));
+	#endif
 	}
 #ifdef DEBUGE_MODE
 	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
 	live_object_count = 0;
 	printf("sweep"); fflush(stdout);
 #endif
+	// call sweep function (look at msmalloc)
 	sweep();
 	printf("after: "); printDlMallocInfo(); fflush(stdout);
 	// printf("after m&s "); printDlMallocInfo(); fflush(stdout);
