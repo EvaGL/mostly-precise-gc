@@ -1,7 +1,7 @@
 /*************************************************************************************//**
-        * File: gc_new.h
-        * Description: This file consists memory allocation primitive gc_new and
-        	object meta classes realisations.
+		* File: gc_new.h
+		* Description: This file consists memory allocation primitive gc_new and
+			object meta classes realisations.
 *****************************************************************************************/
 
 #pragma once

@@ -1,7 +1,7 @@
 /*************************************************************************************//**
-        * File: gc_new.cpp
-        * Description: This file consists some global data.
-        TODO: global data might be disposed of ...
+		* File: gc_new.cpp
+		* Description: This file consists some global data.
+		TODO: global data might be disposed of ...
 *****************************************************************************************/
 
 #include "gc_new.h"
