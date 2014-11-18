@@ -1,6 +1,7 @@
 /*************************************************************************************//**
         * File: gc_new.h
-        * Description: This file consists realiasation functions  from "gc_new.cpp"
+        * Description: This file consists memory allocation primitive gc_new and
+        	object meta classes realisations.
 *****************************************************************************************/
 
 #pragma once
@@ -27,29 +28,31 @@ extern size_t current_pointer_to_object;
 // #define DEBUGE_MODE
 
 /**
-* @class meta information
-* @brief stored significant for collecting information
-* @detailed the first main thing that stored - pointer object box
+* @class base_meta
+* @brief object meta base class
+* @detailed realizes base object meta class (like interface for eatch object meta)
 */
 class base_meta {
 public:
-	void *shell; /**< pointer on the box(meta info struct for storing offsets) of object */
-	void * ptrptr;
-	size_t size; /**< size of object */
-	virtual void del_ptr () = 0; /**< delete meta-ptr */
-	virtual void* get_begin () = 0; /**< get begin of object(pointer on meta)*/
+	void *shell;	/**< pointer on the box(meta info struct for storing offsets) of object */
+	void * ptrptr;	/**< pointer to the real object begin */
+	size_t size;	/**< size of object */
+	virtual void del_ptr () = 0;	/**< delete meta-ptr */
+	virtual void* get_begin () = 0;	/**< get begin of object (pointer on meta)*/
 };
 
 /**
-* @class base_meta  
-* @brief the class with virtual functions from meta
-* @detailed stored pointer on the beginning gc_ptr object(base_meta)
+* @class meta  
+* @brief template class; realizes specific meta for eatch object;
+* @detailed it creates in gc_new and it it stored directly with (right before) the
+	allocated object.
 */
 template <class T>
 class meta : public base_meta {
 public:
-	T* ptr;
+	T* ptr;	/**< "typed" pointer to the real object begin */
 
+	/// virtual del_ptr function from base_meta realization
 	void del_ptr (void) {
 	#ifdef DEBUGE_MODE
 		printf("in del_ptr\n"); fflush(stdout);
@@ -62,6 +65,7 @@ public:
 		}
 	}
 
+	/// virtual get_begin function from base_meta realization
 	void* get_begin (void) {
 	#ifdef DEBUGE_MODE
 		printf("in get_begin\n"); fflush(stdout);
@@ -70,6 +74,12 @@ public:
 	}
 };
 
+/**
+* @function hasOffsets
+* @brief checks has class T some gc_ptr in or not
+* @detailed
+* @return bool: true --- calss T has some offsets, false --- otherwise
+*/
 template <class T>
 bool hasOffsets (void) {
 #ifdef DEBUGE_MODE
@@ -121,9 +131,14 @@ bool hasOffsets (void) {
 }
 
 /**
-* @class gc_new
-* @brief the class for allocating space and setting metainf
-* @detailed for different kinds of call different allocating 
+* @function gc_new
+* @brief library memory allocation primitive
+* @detailed allocates memory in program heap for managed object
+* @return smart pointer gc_ptr (pointes to managed memory)
+* @param types arguments for non-default constructor call
+* @param count is an array size (defailt = 1 --- single object)
+* @param T is an allocating object type
+* @param Types --- arguments types of non-default constructor arguments
 */
 template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
@@ -132,7 +147,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 #endif
 	size_t old_current_pointer_to_object = current_pointer_to_object;
 	bool old_no_active = no_active;
-	void *res = NULL; /* ninitialize object which will be store the result */
+	void *res = NULL; /* initialize object which will be store the result */
 	assert(count >= 0);
 
 	new_active = true;  /* set flag that object creates(allocates) in heap */
