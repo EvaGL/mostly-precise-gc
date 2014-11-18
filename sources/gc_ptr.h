@@ -1,8 +1,8 @@
 /*************************************************************************************//**
-        * File: gc_ptr.h
-        * Description: This file describe smart pointer class gc_ptr
-        * Detailed: gc_ptr --- is a template library pointer primitive
-        	use gc_ptr insted of regular C++ pointers for managed objects.
+		* File: gc_ptr.h
+		* Description: This file describe smart pointer class gc_ptr
+		* Detailed: gc_ptr --- is a template library pointer primitive
+			use gc_ptr insted of regular C++ pointers for managed objects.
 *****************************************************************************************/
 
 #pragma once
