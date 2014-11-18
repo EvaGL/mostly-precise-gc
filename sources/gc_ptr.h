@@ -1,6 +1,8 @@
 /*************************************************************************************//**
         * File: gc_ptr.h
         * Description: This file describe smart pointer class gc_ptr
+        * Detailed: gc_ptr --- is a template library pointer primitive
+        	use gc_ptr insted of regular C++ pointers for managed objects.
 *****************************************************************************************/
 
 #pragma once
@@ -16,40 +18,50 @@
 #define my_malloc stupid_malloc
 // #define my_malloc malloc
 
-#define set_stack_flag(x)		(void *) ((uintptr_t)x | (uintptr_t)1)
-#define set_composite_flag(x)	(void *) ((uintptr_t)x | (uintptr_t)2)
-#define set_both_flags(x)		(void *) ((uintptr_t)x | (uintptr_t)3)
-#define is_stack_pointer(x)		(bool) ((uintptr_t)x & (uintptr_t)1)
-#define is_composite_pointer(x)	(bool) ((uintptr_t)x & (uintptr_t)2)
-#define clear_stack_flag(x)		(void *) ((uintptr_t)x & ~(uintptr_t)1)
-#define clear_both_flags(x)		(void *) ((uintptr_t)x & ~(uintptr_t)3)
+#define set_stack_flag(x)		(void *)	((uintptr_t)x | (uintptr_t)1)
+#define set_composite_flag(x)	(void *)	((uintptr_t)x | (uintptr_t)2)
+#define set_both_flags(x)		(void *)	((uintptr_t)x | (uintptr_t)3)
+#define is_stack_pointer(x)		(bool)		((uintptr_t)x & (uintptr_t)1)
+#define is_composite_pointer(x)	(bool)		((uintptr_t)x & (uintptr_t)2)
+#define clear_stack_flag(x)		(void *)	((uintptr_t)x & ~(uintptr_t)1)
+#define clear_both_flags(x)		(void *)	((uintptr_t)x & ~(uintptr_t)3)
 
 #define inc(p) stack_ptr.register_stack_root(p)
 // #define dec(p) stack_ptr.delete_stack_root(p)
 
 extern StackMap stack_ptr;
 extern std::vector <size_t> offsets;
-extern bool new_active; /**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
-extern bool no_active; /**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
-extern size_t current_pointer_to_object; /**< used in offsets calculation */
+extern bool new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
+extern bool no_active;	/**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
+extern size_t current_pointer_to_object;	/**< used in offsets calculation */
 
+/**
+* @class Composite_pointer
+* @brief represents tertiary pointer level;
+	uses for "creation pointers inside object" suppport.
+*/
 struct Composite_pointer {
-	void * pointer;
-	void * base;
-	size_t ref_count; //! count of referenses to this object
+	void * pointer;	//! pointer somewere inside object
+	void * base;	//! pointer to the comprehensive object begin
+	size_t ref_count;	//! referense counter
 };
 
 /**
-* \class template smart pointer class gc_ptr
-* \brief the class describes smart pointer
-* \detailed template smart pointer class gc_ptr using to represent pointers and 
-* 	override arithmetics and other operations on them.
+* @class template smart pointer class gc_ptr
+* @brief the class describes library pointer primitive
+* @detailed template smart pointer class gc_ptr using to represent secondary pointer level and 
+* 	overrides arithmetics and other operations on them.
 */
 template <typename T> 
 class gc_ptr {
 private:
-	void * ptr; /**< pointer on specified type*/
+	void * ptr; /**< pointer directly on specified managed object */
 
+	/**
+	* @function get_base_ptr
+	* @param ptr is a pointer directly on the managed object
+	* @return pointer to the object meta (look at base_meta and class_meta in gc_new.h)
+	*/
 	void * get_base_ptr (void * ptr) {
 	#ifdef DEBUGE_MODE
 		printf("get_base_ptr\n"); fflush(stdout);
@@ -61,6 +73,11 @@ private:
 		}
 	}
 
+	/**
+	* @function ptr
+	* @param ptr some pointer
+	* @return some correctly aligned pointer (cleared from flags)
+	*/
 	T * get_ptr (void * pointer) const {
 	#ifdef DEBUGE_MODE
 		printf("T * get_ptr\n"); fflush(stdout);
@@ -72,7 +89,14 @@ private:
 		}
 	}
 
-	// only for gc_new
+	/**
+	* @constructor
+	* @detailed only for gc_new, because it is unsafe to create
+		gc_ptr from some pointer outside the gc_new
+		following the fact that correct meta might be before the obgect in memory;
+		only gc_new can garanty this.
+	* @param p pointer manafed object
+	*/
 	gc_ptr (T* p) {
 	#ifdef DEBUGE_MODE
 		printf("gc_ptr(T* p) { %p\n", this);
@@ -100,6 +124,9 @@ private:
 	}
 
 public:
+	/**
+	* @return is it automatic object (in program stack) or not (i.e. in heap)
+	*/
 	bool is_stack_ptr () {
 	#ifdef DEBUGE_MODE
 		printf("get_stack_ptr\n"); fflush(stdout);
@@ -107,8 +134,9 @@ public:
 		return is_stack_pointer(ptr);
 	}
 
-	/**	\fn construct gc_ptr()
-		\brief setting ptr on null
+	/**
+	* @constructor default constructor
+	* @detailed sets ptr pointer on NULL
 	*/
 	gc_ptr () {
 	#ifdef DEBUGE_MODE
@@ -136,8 +164,9 @@ public:
 		}
 	}
 
-	/**	\fn construct gc_ptr(const gc_ptr<int> &p)
-		\brief setting pointer on given adress type of T 			
+	/**
+	* @constructor copy constructor
+	* @param p is a gc_ptr to be copied
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
 	#ifdef DEBUGE_MODE
@@ -168,12 +197,19 @@ public:
 		}
 	}
 
+	/**
+	* @constructor move constructor ?!?
+	* @param p is gc_ptr to be moved
+	*/
 	gc_ptr (gc_ptr <T> &&p) {
 		ptr = clear_stack_flag(p.ptr);
 	}
 	
-	/**	\fn destructor gc_ptr()
-		\brief delete current gc_ptr from special ptr_list  			
+	/**
+	* @destructor
+	* @detailed gc_ptr dectructor;
+		removes itself from root stack if neccesary;
+		clear composite pointer if neccesary.
 	*/
 	~gc_ptr () {
 	#ifdef DEBUGE_MODE
@@ -185,7 +221,6 @@ public:
 		#endif
 			stack_ptr.delete_stack_root(this);
 		}
-
 		if (is_composite_pointer(ptr)) {
 		#ifdef DEBUGE_MODE
 			printf("composite ptr; ");
@@ -194,12 +229,12 @@ public:
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
-#ifdef DEBUGE_MODE
-	printf("~gc_ptr: ends\n");
-#endif
+	#ifdef DEBUGE_MODE
+		printf("~gc_ptr: ends\n");
+	#endif
 	}
 
-	/* reloaded operators for gc_ptrs objects*/
+	/* reloaded operators for gc_ptr's objects */
 	T& operator* () const					{	return * get_ptr(ptr);									}
 	T * operator-> () const 				{	return get_ptr(ptr);									}
 	operator T * () const 					{	return get_ptr(ptr);									}
@@ -215,7 +250,6 @@ public:
 	bool operator == (const long int a)		{	return a == reinterpret_cast<size_t> (get_ptr(ptr));	}
 	bool operator != (const long int a)		{	return a != reinterpret_cast<size_t> (get_ptr(ptr));	}
 	operator bool () const 					{	return get_ptr(ptr) != NULL;							}
-
 	gc_ptr& operator = (const gc_ptr <T> &a) {
 	#ifdef DEBUGE_MODE
 		printf("gc_ptr& operator =\n");
@@ -260,6 +294,9 @@ public:
 		ptr = is_stack_pointer(ptr) ? set_both_flags(cp) : set_composite_flag(cp);
 	}
 
+	/**	\fn nullify function
+		\brief nullifies current object
+	*/
 	void setNULL () {
 	#ifdef DEBUGE_MODE
 		printf("setNULL\n"); fflush(stdout);
@@ -269,19 +306,23 @@ public:
 			assert(cp->ref_count > 0);
 			if (cp->ref_count-- == 0) free(cp);
 		}
-
 		ptr = 0;
 	}
 
+	/** look at gc_new.h */
 	template <class R, typename ... Types>
 	friend
 	gc_ptr<R> gc_new (Types ... , size_t);
 
+	/** look at go.h */
 	inline
 	friend
 	void * get_next_obj (void * v);
 
-	void print () {
+	/**	\fn print
+		\brief prints gc_ptr stamp
+	*/
+	void print (void) {
 		printf("\ngc_ptr: %p\n", this);
 		printf("\tpointer: %p\n", ptr);
 		printf("\tis stack: %i\n", is_stack_pointer(ptr));
