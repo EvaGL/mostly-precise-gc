@@ -224,7 +224,7 @@ void operator delete (void * p) {
 }
 
 /**
-* @function delete
+* @function gc_delete
 * @detailed gc delete function
 * @param chunk --- pointer on chunk to be freed
 */
