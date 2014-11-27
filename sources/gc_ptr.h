@@ -26,10 +26,6 @@
 #define clear_stack_flag(x)		(void *)	((uintptr_t)x & ~(uintptr_t)1)
 #define clear_both_flags(x)		(void *)	((uintptr_t)x & ~(uintptr_t)3)
 
-#define inc(p) stack_ptr.register_stack_root(p)
-// #define dec(p) stack_ptr.delete_stack_root(p)
-
-extern StackMap stack_ptr;
 extern std::vector <size_t> offsets;
 extern bool new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
 extern bool no_active;	/**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
@@ -109,7 +105,8 @@ private:
 			return;
 		}
 		if (!new_active) {
-			inc(this);
+			StackMap * stack_ptr = StackMap::getInstance();
+			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 	#ifdef DEBUGE_MODE
 		printf("\tstack\n");
@@ -150,7 +147,8 @@ public:
 			return;
 		}
 		if (!new_active) {
-			inc(this);
+			StackMap * stack_ptr = StackMap::getInstance();
+			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 	#ifdef DEBUGE_MODE
 		printf("\tstack\n");
@@ -186,7 +184,8 @@ public:
 		#ifdef DEBUGE_MODE
 			printf("\tstack pointer\n");
 		#endif
-			inc(this);
+			StackMap * stack_ptr = StackMap::getInstance();
+			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 		} else if (is_heap_pointer(this)) {
 		#ifdef DEBUGE_MODE
@@ -219,7 +218,8 @@ public:
 		#ifdef DEBUGE_MODE
 			printf("~gc_ptr -> delete stack root: %p\n", this);
 		#endif
-			stack_ptr.delete_stack_root(this);
+			StackMap * stack_ptr = StackMap::getInstance();
+			stack_ptr->delete_stack_root(this);
 		}
 		if (is_composite_pointer(ptr)) {
 		#ifdef DEBUGE_MODE

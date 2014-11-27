@@ -14,12 +14,11 @@ StackMap * StackMap::instance = NULL;
 StackMap::StackMap(size_t length1,
 		int free_page_parameter1,
 		int add_page_parameter1
- 		) {
+		) {
 #ifdef DEBUG_MODE
 	printf("StackMap::StackMap(size_t length1,...\n");
 	fflush(stdout);
 #endif
-	StackMap::instance = this;
 	stackElement_size = sizeof(struct StackElement);
 	page_size = length1 / stackElement_size;
 	length = page_size * stackElement_size;
@@ -43,7 +42,7 @@ StackMap::StackMap(size_t length1,
 #endif
 }
 
-StackMap StackMap::create_StackMap_instance(
+StackMap * StackMap::getInstance(
 		int free_page_parameter1, int add_page_parameter1,
 		size_t length1
 		) {
@@ -51,10 +50,14 @@ StackMap StackMap::create_StackMap_instance(
 	printf("StackMap StackMap::create_StackMap_instance(...\n");
 	fflush(stdout);
 #endif
-	if (StackMap::instance) {
-		return * StackMap::instance;
+	// if (StackMap::instance) {
+	// 	return * StackMap::instance;
+	// }
+	// return StackMap(length1, free_page_parameter1, add_page_parameter1);
+	if (!StackMap::instance) {
+		StackMap::instance = new StackMap(length1, free_page_parameter1, add_page_parameter1);
 	}
-	return StackMap(length1, free_page_parameter1, add_page_parameter1);
+	return StackMap::instance;
 }
 
 StackMap::~StackMap() {}

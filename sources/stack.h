@@ -43,11 +43,11 @@ public:
 class StackMap {
 protected:
 	StackMap(size_t length1,
-	 		int free_page_parameter1,
-	 		int add_page_parameter1
+			int free_page_parameter1,
+			int add_page_parameter1
 			);
 public:
-	static StackMap create_StackMap_instance(
+	static StackMap * getInstance(
 		int free_page_parameter1 = -1, int add_page_parameter1 = -1,
 		size_t length1 = sysconf(_SC_PAGE_SIZE)
 		);
@@ -68,9 +68,11 @@ public:
 	Iterator end		();
 
 private:
-	/// singleton
-	static StackMap* instance;
-	/// size of creating page in StackElement counts
+	StackMap			(StackMap const&);	// copy constructor; Not implemented because of sigleton
+	StackMap& operator= (StackMap const&);	// assignment operator; Not implemented because of sigleton
+	/// singleton instance
+	static StackMap * instance;
+
 	int page_size;
 	/// difference between top and end_of_free_space, after witch last memory page would be unmapped
 	int free_page_parameter;

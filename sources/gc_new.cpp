@@ -9,7 +9,7 @@
 #include <cstdio>
 #include "stack.h"
 
-StackMap stack_ptr = StackMap::create_StackMap_instance();	//!< root stack
+// StackMap stack_ptr = StackMap::create_StackMap_instance();	//!< root stack
 std::vector <size_t> offsets;	/// global data to store offsets from the class
 								/// constructs in gc_ptr;
 								/// releases and transforms to class meta in gc_new.

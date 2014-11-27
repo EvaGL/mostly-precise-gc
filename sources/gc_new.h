@@ -16,7 +16,7 @@
 #include <msmalloc.h>
 #include "gc_ptr.h"
 
-extern StackMap stack_ptr;
+// extern StackMap stack_ptr;
 extern bool new_active;
 extern bool no_active;
 extern size_t counter;

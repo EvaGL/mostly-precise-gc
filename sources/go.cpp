@@ -16,7 +16,7 @@
 #endif
 // #define DEBUGE_MODE
 
-extern StackMap stack_ptr;
+// extern StackMap stack_ptr;
 extern int nesting_level;
 
 #ifdef DEBUGE_MODE
@@ -255,8 +255,10 @@ void mark_and_sweep () {
 	printf("roots: ");
 #endif
 	// iterate root stack and call traversing function go
-	for(Iterator root = stack_ptr.begin(); root <= stack_ptr.end(); root++) {/* walk through all roots*/
+	StackMap * stack_ptr = StackMap::getInstance();
+	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+	printf("root %p ", get_next_obj(*root));
 	#ifdef DEBUGE_MODE
 		i++;
 		printf("root %p ", get_next_obj(*root));
