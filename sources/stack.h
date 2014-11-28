@@ -1,10 +1,11 @@
 /*************************************************************************************************//**
 		* File: stack.h
-		* Description: This file describes memory pool, represented as mapped continued memory area
-						Is not a singleton, but has some 'looks like' --- remainder of luxury
+		* Description:	This file describes memory pool, represented as mapped continued memory area;
+						Classs is realized as singleton.
 *****************************************************************************************************/
 #pragma once
 #include <unistd.h>
+#include <mutex>
 
 /**
 * @structure --- represents a one stack element;
@@ -70,8 +71,8 @@ public:
 private:
 	StackMap			(StackMap const&);	// copy constructor; Not implemented because of sigleton
 	StackMap& operator= (StackMap const&);	// assignment operator; Not implemented because of sigleton
-	/// singleton instance
-	static StackMap * instance;
+	// static std::mutex mutex;
+	// static StackMap * instance;
 
 	int page_size;
 	/// difference between top and end_of_free_space, after witch last memory page would be unmapped

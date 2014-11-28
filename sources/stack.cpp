@@ -9,7 +9,8 @@
 
 // #define DEBUG_MODE
 
-StackMap * StackMap::instance = NULL;
+// StackMap * StackMap::instance = NULL;
+// std::mutex StackMap::mutex;
 
 StackMap::StackMap(size_t length1,
 		int free_page_parameter1,
@@ -46,18 +47,13 @@ StackMap * StackMap::getInstance(
 		int free_page_parameter1, int add_page_parameter1,
 		size_t length1
 		) {
-#ifdef DEBUG_MODE
-	printf("StackMap StackMap::create_StackMap_instance(...\n");
-	fflush(stdout);
-#endif
-	// if (StackMap::instance) {
-	// 	return * StackMap::instance;
+	static StackMap instance(length1, free_page_parameter1, add_page_parameter1);
+	return &instance;
+	// std::lock_guard<std::mutex> lock (mutex);
+	// if (!StackMap::instance) {
+	// 	StackMap::instance = new StackMap(length1, free_page_parameter1, add_page_parameter1);
 	// }
-	// return StackMap(length1, free_page_parameter1, add_page_parameter1);
-	if (!StackMap::instance) {
-		StackMap::instance = new StackMap(length1, free_page_parameter1, add_page_parameter1);
-	}
-	return StackMap::instance;
+	// return StackMap::instance;
 }
 
 StackMap::~StackMap() {}
