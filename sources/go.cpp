@@ -116,7 +116,7 @@ void go (void * pointer) {
 			printf("NOT HEAP bm \n"); fflush(stdout);
 		}
 	#endif
-		if (get_mark(bm) != 0) {// || get_mark(v) != 0) { /* if marked --- return*/
+		if (get_mark(bm) != 0) {
 		#ifdef DEBUGE_MODE
 			printf("%p %p already marked\n ", bm, v);
 			fflush(stdout);
