@@ -10,13 +10,13 @@
 #include "fake_roots.h"
 #include <stdint.h>
 #include "go.h"
+#include <stack>
 
 #ifdef DEBUGE_MODE
 	#undef DEBUGE_MODE
 #endif
 // #define DEBUGE_MODE
 
-// extern StackMap stack_ptr;
 extern int nesting_level;
 
 #ifdef DEBUGE_MODE
@@ -85,27 +85,35 @@ inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 * @return nothing
 * @param v --- is a current traversing object (in first call --- roots and fake roots)
 */
-void go (void * v) {
-	try {
+void go (void * pointer) {
+#ifdef DEBUGE_MODE
+	printf("\nin go\n"); fflush(stdout);
+#endif
+	if (!pointer || !is_heap_pointer(pointer)) {
 	#ifdef DEBUGE_MODE
-		printf("\nin go\n");
-		fflush(stdout);
+		printf("\nreturn! --- NULL or NON-heap pointer %p\n", pointer);	fflush(stdout);
 	#endif
+		return;
+	}
+
+	std::stack<void *> vertices;
+	vertices.push(pointer);
+
+	while (vertices.size() != 0) {
+		void * v = vertices.top();	vertices.pop();
+
 		if (v == NULL || !is_heap_pointer(v)) {
 		#ifdef DEBUGE_MODE
 			printf(" %p is not a heap pointer\n ", v);
 		#endif
-			return;
+			continue;
 		}
 		
 		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
 	#ifdef DEBUGE_MODE
-		printf("base_meta %p\n", bm);
-		fflush(stdout);
+		printf("base_meta %p\n", bm); fflush(stdout);
 		if (!is_heap_pointer(bm)) {
-			printf("NOT HEAP bm \n");
-			fflush(stdout);
-			return;
+			printf("NOT HEAP bm \n"); fflush(stdout);
 		}
 	#endif
 		if (get_mark(bm) != 0) {// || get_mark(v) != 0) { /* if marked --- return*/
@@ -113,7 +121,7 @@ void go (void * v) {
 			printf("%p %p already marked\n ", bm, v);
 			fflush(stdout);
 		#endif
-			return;
+			continue;
 		}
 		void *shell = bm->shell;  /* saving ponter on meta object in shell */
 		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
@@ -130,62 +138,66 @@ void go (void * v) {
 		fflush(stdout);
 	#endif
 
-		switch (tag->model) {
-			case 1: {  /* boxed object */
-					size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
-					void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
-				#ifdef DEBUGE_MODE
-					printf("offset count: %zu\n", n);
-				#endif
-					for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
-						void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
+		try {
+			switch (tag->model) {
+				case 1: {  /* boxed object */
+						size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
+						void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
 					#ifdef DEBUGE_MODE
-						printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
+						printf("offset count: %zu\n", n);
 					#endif
-						if (p) {
-							go(get_next_obj(p));  /* go deeper and mark*/
-						}
-						this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
-					}
-				}
-				break;
-			case 2:  /* simple obj*/
-				break;
-			case 3: {  /* boxed array*/
-					void * poin = v;
-					size_t sizeType = tag->num_of_el, sizeArray = tag->size;
-					for (size_t i = 0; i < sizeArray; i++, poin = (void *)((char *)poin + sizeType)) {
-					#ifdef DEBUGE_MODE
-						printf(" %i ", i);
-					#endif
-						void * meta = tag->ptr;
-						void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
-						size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
-						for (size_t i = 0; i < n; i++) {
-							void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
+						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
+							void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
+						#ifdef DEBUGE_MODE
+							printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
+						#endif
 							if (p) {
-								go(get_next_obj(p));
+								vertices.push(get_next_obj(p));
 							}
-							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);
+							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
 					}
-				}
-				break;
-			case 4:  /* unboxed_array*/
-				break;
-			default:
-				throw tag;	
-				break;
+					break;
+				case 2:  /* simple obj*/
+					break;
+				case 3: {  /* boxed array*/
+						void * poin = v;
+						size_t sizeType = tag->num_of_el, sizeArray = tag->size;
+						for (size_t i = 0; i < sizeArray; i++, poin = (void *)((char *)poin + sizeType)) {
+						#ifdef DEBUGE_MODE
+							printf(" %i ", i);
+						#endif
+							void * meta = tag->ptr;
+							void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
+							size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
+							for (size_t i = 0; i < n; i++) {
+								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
+								if (p) {
+									vertices.push(get_next_obj(p));
+								}
+								this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);
+							}
+						}
+					}
+					break;
+				case 4:  /* unboxed_array*/
+					break;
+				default:
+					throw tag;
+					break;
+			}
+		} catch(BLOCK_TAG* tag) {
+			printf("Error of data representation!\nAttention, null - value of tag-model\n");
+			printf("tag value:%p\n", tag);
+			printf("tag-model value: %u\n", tag->model);
+			printf("tag-size value: %lu\n", tag->size);
+			fflush(stdout);
+			exit(1);
+		} catch(...) {
+			printf("UNEXPECTED ERROR!!! CHECK tag->mbit");
+			fflush(stdout);
+			exit(1);
 		}
-	} catch(BLOCK_TAG* tag) {
-		printf("Error of data representation!\nAttention, null - value of tag-model\n");
-		printf("tag value:%p\n", tag);
-		printf("tag-model value: %u\n", tag->model);	
-		printf("tag-size value: %lu\n", tag->size);	
-		fflush(stdout);
-	} catch(...) {
-		printf("UNEXPECTED ERROR!!! CHECK tag->mbit");
-		fflush(stdout);
 	}
 }
 
@@ -258,7 +270,6 @@ void mark_and_sweep () {
 	StackMap * stack_ptr = StackMap::getInstance();
 	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-	printf("root %p ", get_next_obj(*root));
 	#ifdef DEBUGE_MODE
 		i++;
 		printf("root %p ", get_next_obj(*root));
