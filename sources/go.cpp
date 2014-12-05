@@ -133,7 +133,6 @@ void go (void * pointer) {
 
 	while (!vertices->is_empty()) {
 		void * v = vertices->pop();
-		printf("ololo %zu %zu\n", v, pointer);
 		if (v == NULL || !is_heap_pointer(v)) {
 			continue;
 		}
