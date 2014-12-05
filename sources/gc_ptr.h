@@ -98,23 +98,23 @@ private:
 		printf("gc_ptr(T* p) { %p\n", this);
 	#endif
 		ptr = (void *) p;
-		if (no_active) {
-	#ifdef DEBUGE_MODE
-		printf("\tno_active\n");
-	#endif
-			return;
-		}
 		if (!new_active) {
 			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
-	#ifdef DEBUGE_MODE
-		printf("\tstack\n");
-	#endif
+		#ifdef DEBUGE_MODE
+			printf("\tstack\n");
+		#endif
 		} else if (is_heap_pointer(this)) {
-	#ifdef DEBUGE_MODE
-		printf("\theap\n");
-	#endif
+			if (no_active) {
+			#ifdef DEBUGE_MODE
+				printf("\tno_active\n");
+			#endif
+				return;
+			}
+		#ifdef DEBUGE_MODE
+			printf("\theap\n");
+		#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -140,23 +140,23 @@ public:
 		printf("gc_ptr() { %p\n", this); fflush(stdout);
 	#endif
 		ptr = 0;
-		if (no_active) {
-	#ifdef DEBUGE_MODE
-		printf("\tno_active\n");
-	#endif
-			return;
-		}
 		if (!new_active) {
 			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
-	#ifdef DEBUGE_MODE
-		printf("\tstack\n");
-	#endif
+		#ifdef DEBUGE_MODE
+			printf("\tstack\n");
+		#endif
 		} else if (is_heap_pointer(this)) {
-	#ifdef DEBUGE_MODE
-		printf("\theap\n");
-	#endif
+			if (no_active) {
+			#ifdef DEBUGE_MODE
+				printf("\tno_active\n");
+			#endif
+			return;
+			}
+		#ifdef DEBUGE_MODE
+			printf("\theap\n");
+		#endif
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
@@ -174,12 +174,6 @@ public:
 		if (is_composite_pointer(p.ptr)) {
 			((Composite_pointer *)(clear_both_flags(p.ptr)))->ref_count++;
 		}
-		if (no_active) {
-		#ifdef DEBUGE_MODE
-			printf("\tno_active\n");
-		#endif
-			return;
-		}
 		if (!new_active) {
 		#ifdef DEBUGE_MODE
 			printf("\tstack pointer\n");
@@ -188,6 +182,12 @@ public:
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 		} else if (is_heap_pointer(this)) {
+			if (no_active) {
+				#ifdef DEBUGE_MODE
+					printf("\tno_active\n");
+				#endif
+				return;
+			}
 		#ifdef DEBUGE_MODE
 			printf("\theap pointer\n");
 		#endif
