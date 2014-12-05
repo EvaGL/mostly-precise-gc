@@ -76,7 +76,14 @@ public:
 /**
 * @function hasOffsets
 * @brief checks has class T some gc_ptr in or not
-* @detailed
+* @detailed checks has class T some gc_ptr in or not;
+*	it also constructs class-meta-information for class T
+*	iff this meta-information isn't exists yet;
+*	P.S. it calls in gc_new in case clMeta(class-meta-information) == NULL
+*		and object that is allocating is an array (count != 1);
+*		In this case we have no meta-information for class T
+*		and to costruct it hasOffsets allocates automatic single object
+*		typeof T with help of calling default contructor of T class;
 * @return bool: true --- calss T has some offsets, false --- otherwise
 */
 template <class T>
