@@ -10,7 +10,6 @@
 #include "fake_roots.h"
 #include <stdint.h>
 #include "go.h"
-#include <stack>
 
 #ifdef DEBUGE_MODE
 	#undef DEBUGE_MODE
@@ -29,21 +28,24 @@ extern int nesting_level;
 * @param ptr --- some pointer (really is a pointer to th managed object)
 */
 void * get_ptr (void * ptr) {
-#ifdef DEBUGE_MODE
-	printf("go.cpp: get_ptr\n"); fflush(stdout);
-#endif
+#ifndef DEBUGE_MODE
 	if (is_composite_pointer(ptr)) {
-	#ifdef DEBUGE_MODE
-			printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
-	#endif
 		mark(clear_both_flags(ptr));
 		return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
 	} else {
-	#ifdef DEBUGE_MODE
-			printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
-	#endif
 		return clear_stack_flag(ptr);
 	}
+#else
+	printf("go.cpp: get_ptr\n"); fflush(stdout);
+	if (is_composite_pointer(ptr)) {
+		printf(" %p comp %p \n ", ptr, ((Composite_pointer *)(clear_both_flags(ptr)))->base);
+		mark(clear_both_flags(ptr));
+		return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
+	} else {
+		printf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
+		return clear_stack_flag(ptr);
+	}
+#endif
 }
 
 /**
@@ -76,6 +78,41 @@ inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 	return reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *))));
 }
 
+struct Stack {
+	struct StackEl {
+		void * pointer;
+		StackEl * prev;
+	};
+	StackEl * top;
+
+	int push (void * new_element) {
+		StackEl * st = (StackEl *) malloc (sizeof(StackEl));
+		if (!st) {
+			// fails to allocate memory
+			return 1;
+		}
+		st->prev = top;
+		st->pointer = new_element;
+		top = st;
+		return 0;
+	}
+
+	void * pop () {
+		if (!top) {
+			return NULL;
+		}
+		void * res = top->pointer;
+		StackEl * st = top;
+		top = top->prev;
+		free(st);
+		return res;
+	}
+
+	bool is_empty () {
+		return top == NULL;
+	}
+};
+
 /**
 * @function go
 * @detailed recursive traversing function (implements mark gc phase);
@@ -85,6 +122,93 @@ inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 * @return nothing
 * @param v --- is a current traversing object (in first call --- roots and fake roots)
 */
+#ifndef DEBUGE_MODE
+void go (void * pointer) {
+	if (!pointer || !is_heap_pointer(pointer)) {
+		return;
+	}
+	Stack * vertices = (Stack *)malloc(sizeof(Stack));
+	vertices->top = NULL;
+	vertices->push(pointer);
+
+	while (!vertices->is_empty()) {
+		void * v = vertices->pop();
+		printf("ololo %zu %zu\n", v, pointer);
+		if (v == NULL || !is_heap_pointer(v)) {
+			continue;
+		}
+		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
+		if (get_mark(bm) != 0) {
+			continue;
+		}
+		void *shell = bm->shell;  /* saving ponter on meta object in shell */
+		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
+
+		mark(bm);
+		try {
+			switch (tag->model) {
+				case 1: {  /* boxed object */
+						size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
+						void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
+						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
+							void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
+							if (p) {
+								void * next_vertice = get_next_obj(p);
+								if (next_vertice) {
+									if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+										// TODO: and ?
+										printf("FUNCTION Go : tag : case1 : out of memory\n"); fflush(stdout);
+										exit(1);
+									}
+								}
+							}
+							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
+						}
+					}
+					break;
+				case 2:  /* simple obj*/
+					break;
+				case 3: {  /* boxed array*/
+						void * poin = v;
+						size_t sizeType = tag->num_of_el, sizeArray = tag->size;
+						for (size_t i = 0; i < sizeArray; i++, poin = (void *)((char *)poin + sizeType)) {
+							void * meta = tag->ptr;
+							void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
+							size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
+							for (size_t i = 0; i < n; i++) {
+								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
+								if (p) {
+									void * next_vertice = get_next_obj(p);
+									if (next_vertice) {
+										if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+											// TODO: and ?
+											printf("FUNCTION Go : tag : case3 : out of memory\n"); fflush(stdout);
+											exit(1);
+										}
+									}
+								}
+								this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);
+							}
+						}
+					}
+					break;
+				case 4:  /* unboxed_array*/
+					break;
+				default:
+					throw tag;
+					break;
+			}
+		} catch(BLOCK_TAG* tag) {
+			printf("FUNCTION go : wrong tag!\n"); fflush(stdout);
+			exit(1);
+		} catch(...) {
+			printf("UNEXPECTED ERROR!!! CHECK tag->mbit"); fflush(stdout);
+			exit(1);
+		}
+	}
+	free(vertices);
+}
+#else
 void go (void * pointer) {
 #ifdef DEBUGE_MODE
 	printf("\nin go\n"); fflush(stdout);
@@ -96,12 +220,13 @@ void go (void * pointer) {
 		return;
 	}
 
-	std::stack<void *> vertices;
-	vertices.push(pointer);
+	Stack * vertices = (Stack *)malloc(sizeof(Stack));
+	vertices->top = NULL;
+	vertices->push(pointer);
 
-	while (vertices.size() != 0) {
-		void * v = vertices.top();	vertices.pop();
-
+	while (!vertices->is_empty()) {
+		void * v = vertices->pop();
+		printf("ololo %zu %zu\n", v, pointer);
 		if (v == NULL || !is_heap_pointer(v)) {
 		#ifdef DEBUGE_MODE
 			printf(" %p is not a heap pointer\n ", v);
@@ -152,7 +277,14 @@ void go (void * pointer) {
 							printf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
 						#endif
 							if (p) {
-								vertices.push(get_next_obj(p));
+								void * next_vertice = get_next_obj(p);
+								if (next_vertice) {
+									if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+										// TODO: and ?
+										printf("FUNCTION Go : tag : case1 : out of memory\n"); fflush(stdout);
+										exit(1);
+									}
+								}
 							}
 							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
 						}
@@ -173,7 +305,14 @@ void go (void * pointer) {
 							for (size_t i = 0; i < n; i++) {
 								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
 								if (p) {
-									vertices.push(get_next_obj(p));
+									void * next_vertice = get_next_obj(p);
+									if (next_vertice) {
+										if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+											// TODO: and ?
+											printf("FUNCTION Go : tag : case3 : out of memory\n"); fflush(stdout);
+											exit(1);
+										}
+									}
 								}
 								this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);
 							}
@@ -187,20 +326,16 @@ void go (void * pointer) {
 					break;
 			}
 		} catch(BLOCK_TAG* tag) {
-			printf("Error of data representation!\nAttention, null - value of tag-model\n");
-			printf("tag value:%p\n", tag);
-			printf("tag-model value: %u\n", tag->model);
-			printf("tag-size value: %lu\n", tag->size);
-			fflush(stdout);
+			printf("FUNCTION go : wrong tag!\n"); fflush(stdout);
 			exit(1);
 		} catch(...) {
-			printf("UNEXPECTED ERROR!!! CHECK tag->mbit");
-			fflush(stdout);
+			printf("UNEXPECTED ERROR!!! CHECK tag->mbit"); fflush(stdout);
 			exit(1);
 		}
 	}
+	free(vertices);
 }
-
+#endif
 /**
 * @function gc
 * @detailed forse garbage collection call for malloc's from msmalloc
@@ -252,36 +387,40 @@ void gc_delete (void * chunk) {
 * @detailed implements mark and sweep stop the world algorithm
 */
 void mark_and_sweep () {
-#ifdef DEBUGE_MODE
-	printf("go.cpp: mark_and_sweep\n"); fflush(stdout);
-#endif
-	printf("mark and sweep!\nbefore:");
-	printDlMallocInfo();
-
+#ifndef DEBUGE_MODE
+	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
 	mark_fake_roots();
 
-#ifdef DEBUGE_MODE
-	live_object_count = 0;
-	printf("mark\n"); fflush(stdout);
-	int i = 0;
-	printf("roots: ");
-#endif
 	// iterate root stack and call traversing function go
 	StackMap * stack_ptr = StackMap::getInstance();
 	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
 		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-	#ifdef DEBUGE_MODE
-		i++;
-		printf("root %p ", get_next_obj(*root));
-	#endif
 	}
-#ifdef DEBUGE_MODE
-	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
-	live_object_count = 0;
-	printf("sweep"); fflush(stdout);
-#endif
 	// call sweep function (look at msmalloc)
 	sweep();
 	printf("after: "); printDlMallocInfo(); fflush(stdout);
-	// printf("after m&s "); printDlMallocInfo(); fflush(stdout);
+#else
+	printf("go.cpp: mark_and_sweep\n"); fflush(stdout);
+	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
+	mark_fake_roots();
+
+	live_object_count = 0;
+	printf("mark\n"); fflush(stdout);
+	int i = 0;
+	printf("roots: ");
+
+	// iterate root stack and call traversing function go
+	StackMap * stack_ptr = StackMap::getInstance();
+	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
+		go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+		i++;
+		printf("root %p ", get_next_obj(*root));
+	}
+	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
+	live_object_count = 0;
+	printf("sweep"); fflush(stdout);
+	// call sweep function (look at msmalloc)
+	sweep();
+	printf("after: "); printDlMallocInfo(); fflush(stdout);
+#endif
 }
