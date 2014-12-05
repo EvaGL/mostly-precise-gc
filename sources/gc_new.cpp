@@ -9,11 +9,10 @@
 #include <cstdio>
 #include "stack.h"
 
-// StackMap stack_ptr = StackMap::create_StackMap_instance();	//!< root stack
 std::vector <size_t> offsets;	/// global data to store offsets from the class
 								/// constructs in gc_ptr;
 								/// releases and transforms to class meta in gc_new.
-bool new_active = false; /* global flag. False -- gc_new is unactive, true -- gc_new is active*/
+bool new_active = false;	/* global flag. False -- gc_new is unactive, true -- gc_new is active*/
 MetaInformation * list_meta_obj = new MetaInformation();	/// global list with class meta
 /// TODO: counter might be releazed
 size_t counter = 0;	/* stored count of occupated blocks */
