@@ -1,6 +1,7 @@
 # SOURCE=test1.cpp
 # SOURCE=test2.cpp
-SOURCE=test3.cpp
+# SOURCE=test3.cpp
+SOURCE=test4.cpp
 CPPC=g++
 LOAD_LIBRARY=-L /usr/local/lib/ -l gc -l pthread -l msmalloc
 
