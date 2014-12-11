@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include "debug_print.h"
 
 struct ClassesNamesPull {
 	char * pullBegin;
@@ -11,9 +12,7 @@ struct ClassesNamesPull {
 	size_t length;
 
 	ClassesNamesPull () {
-	#ifdef DEBUGE_MODE
-		printf("ClassNamesPull\n"); fflush(stdout);
-	#endif
+		dprintf("ClassNamesPull\n");
 		length = 4096;
 		pullBegin = (char*)mmap(0, length, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert(pullBegin != MAP_FAILED);
@@ -22,18 +21,14 @@ struct ClassesNamesPull {
 	}
 
 	void allocateMoreSpace () {
-	#ifdef DEBUGE_MODE
-		printf("allocateMoreSpace\n"); fflush(stdout);
-	#endif
+		dprintf("allocateMoreSpace\n");
 		endOfMappedSpace = (char*)mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert(endOfMappedSpace != MAP_FAILED);
 		endOfMappedSpace = (endOfMappedSpace + length * sizeof(char));
 	}
 
 	char * addClassName (const char * str) {
-	#ifdef DEBUGE_MODE
-		printf("addClassMName\n"); fflush(stdout);
-	#endif
+		dprintf("addClassMName\n");
 		if (endOfMappedSpace < (pullEnd + (strlen(str) + 1) * sizeof(char))) {
 			endOfMappedSpace = (char*)mmap(endOfMappedSpace, length, PROT_WRITE | PROT_READ, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		}
@@ -49,9 +44,7 @@ ClassesNamesPull classNamesPull;
 MetaInformation * classMeta = NULL;
 
 void * contains (MetaInformation * meta, const char * str) {
-#ifdef DEBUGE_MODE
-	printf("contains\n"); fflush(stdout);
-#endif
+	dprintf("contains\n");
 	MetaInformation * temp = meta;
 	while (temp != NULL) {
 		char * metaName = temp->name;
@@ -66,20 +59,18 @@ void * contains (MetaInformation * meta, const char * str) {
 		}
 		temp = temp->next;
 	}
-	#ifdef DEBUGE_MODE
-		printf(" no class meta \t");
-		for (int i = 0; i < strlen(str); i++) {
-			printf("%c", str[i]);
-		}
-		printf("\n");
-	#endif
+#ifdef DEBUGE_MODE
+	printf(" no class meta \t");
+	for (int i = 0; i < strlen(str); i++) {
+		printf("%c", str[i]);
+	}
+	printf("\n");
+#endif
 	return NULL;
 }
 
 void * getClassMetaPointer (MetaInformation * meta, const char * str) {
-#ifdef DEBUGE_MODE
-	printf("getClassMetaPointer\n"); fflush(stdout);
-#endif
+	dprintf("getClassMetaPointer\n");
 	MetaInformation * temp = meta;
 	while (temp != NULL) {
 		char * metaName = (temp->name);
@@ -98,9 +89,7 @@ void * getClassMetaPointer (MetaInformation * meta, const char * str) {
 }
 
 void addNewClassMetaInformation (const char * str, void * ptr) {
-#ifdef DEBUGE_MODE
-	printf("addNewClassMetaInformation\n"); fflush(stdout);
-#endif
+	dprintf("addNewClassMetaInformation\n");
 	MetaInformation * newMeta = (MetaInformation *) mmap(0, sizeof(struct MetaInformation),
 		PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	assert(newMeta != MAP_FAILED);

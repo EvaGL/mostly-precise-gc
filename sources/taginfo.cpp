@@ -6,6 +6,7 @@
 #include "taginfo.h"
 #include <sys/mman.h>
 #include <assert.h>
+#include "debug_print.h"
 
 /** 
 * @brief generation box for struct
@@ -31,18 +32,14 @@ void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
 		for ( size_t iter_p = 0; iter_p < offsets_ptr.size(); iter_p++, it_offset++) { /* save all pointers in object */
 			descr = {*it_offset, 0}; /* save pointers in descriptor */
-		#ifdef DEBUGE_MODE
-			printf("%zu ", *it_offset);
-		#endif
+			dprintf("%zu ", *it_offset);
 			/*
 			 * call function write descriptor in object 
 			 * first arg - object reference, sec arg - index place in object, thd arg - descriptor
 			 */
 			set_ptr_descr(object, iter_p, descr); 
 		}
-		#ifdef DEBUGE_MODE
-			printf("\n");
-		#endif
+		dprintf("\n");
 	}
 	catch (...) {
 		printf("Error! Couldn't create generic box struct!");
@@ -58,21 +55,14 @@ void * create_generic_object (size_t descr_length, size_t size, size_t num_of_el
 			BLOCK_TAG tag = {TAG_MODEL_2, size, num_of_el, NULL};
 			result = mmap(0, sizeof (BLOCK_TAG) + 1, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 			assert (result != MAP_FAILED);
-			#ifdef DEBUGE_MODE
-				printf("create_generic_object descr_length == 0 %p\n", result);
-				fflush(stdout);
-			#endif
+			dprintf("create_generic_object descr_length == 0 %p\n", result);
 			*(BLOCK_TAG *)result = tag;
 		} else {
 			BLOCK_TAG tag = {TAG_MODEL_1, size, num_of_el, NULL};
 			result = mmap(0, sizeof (BLOCK_TAG) + sizeof(size_t) + descr_length * sizeof(POINTER_DESCR),
 				PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 			assert (result != MAP_FAILED);
-			#ifdef DEBUGE_MODE
-				printf("create_generic_object descr_length != 0 %p\n", result);
-				printf("descr_length: %zu\n", descr_length);
-				fflush(stdout);
-			#endif
+			dprintf("create_generic_object descr_length != 0 %p\ndescr_length: %zu\n", result, descr_length);
 			*(BLOCK_TAG *)result = tag;
 			*(size_t*)((char *)result + sizeof(BLOCK_TAG)) = descr_length;
 		}
@@ -102,10 +92,7 @@ void * create_boxed_array(size_t size, void * clMeta, size_t typeSize) {
 		result = mmap(0, sizeof (BLOCK_TAG),
 			PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert (result != MAP_FAILED);
-		#ifdef DEBUGE_MODE
-			printf("create_boxed_array %p\n", result);
-			fflush(stdout);
-		#endif
+		dprintf("create_boxed_array %p\n", result);
 		*(BLOCK_TAG *)result = tag;
 	} catch (...) {
 		printf("UNEXPECTED ERROR! Function create_boxed_array.");
@@ -122,10 +109,7 @@ void * create_unboxed_array(size_t size) {
 		result = mmap(0, size * sizeof (word_t) + sizeof (BLOCK_TAG) + 1,
 			PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		assert (result != MAP_FAILED);
-		#ifdef DEBUGE_MODE
-			printf("create_unboxed_array %p\n", result);
-			fflush(stdout);
-		#endif
+		dprintf("create_unboxed_array %p\n", result);
 		*(BLOCK_TAG *)result = tag;
 	} catch(...) {
 		printf("UNEXPECTED ERROR! Function create_unboxed_array.");
