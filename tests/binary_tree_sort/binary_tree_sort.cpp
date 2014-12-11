@@ -3,10 +3,9 @@
 #include <libgc/libgc.h>
 #include "List.h"
 #include "Tree.h"
-#include "dprintf.h"
 
 static int array_size = 100;
-bool debug_print = false;
+bool debug_print = true;
 
 void test () {
 	gc_ptr<int> mas =  gc_new<int>(array_size);
