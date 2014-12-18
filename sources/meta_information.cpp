@@ -10,8 +10,10 @@ void * contains (MetaInformation * meta, const void * name) {
 	MetaInformation * temp = meta;
 	while (temp != NULL) {
 		if (name == temp->name) {
+			dprintf("MetaInformation: contains: yes: %p\n", temp->pointer);
 			return temp->pointer;
 		}
+		temp = temp->next;
 	}
 	dprintf(" no class meta \t");
 	return NULL;
