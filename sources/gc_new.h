@@ -89,8 +89,8 @@ bool hasOffsets (void) {
 	std::vector<size_t> temp;
 	temp.swap(offsets);
 	size_t old_current_pointer_to_object = current_pointer_to_object;
-	const char * typeidName = typeid(T).name();
-	void * clMeta = contains(classMeta, typeidName);
+	void * type_name_pointer = (void*)typeid(T).name();
+	void * clMeta = contains(classMeta, type_name_pointer);
 	/* allocate space */
 	void * res = my_malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
@@ -110,14 +110,14 @@ bool hasOffsets (void) {
 			* this args means, that it is simple object without any offsets.
 			*/
 			m_inf->shell = create_generic_object(0, 0, 1);
-			addNewClassMetaInformation(typeidName, m_inf->shell);
+			addNewClassMetaInformation(type_name_pointer, m_inf->shell);
 		}
 	} else {
 		if (clMeta) {
 			m_inf->shell = clMeta;
 		} else {
 			m_inf->shell = generic_box_struct (std::move(offsets), sizeof(T), 1);
-			addNewClassMetaInformation(typeidName, m_inf->shell);
+			addNewClassMetaInformation(type_name_pointer, m_inf->shell);
 		}
 	}
 
@@ -145,9 +145,9 @@ template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	assert(count >= 0);
 	dprintf("in gc_new: \n");
-	const char * typeidName = typeid(T).name();
+	void * type_name_pointer = (void*)typeid(T).name();
 	// get pointer to class meta or NULL if it is no meta for this class
-	void * clMeta = contains(classMeta, typeidName);
+	void * clMeta = contains(classMeta, type_name_pointer);
 	dprintf("\tclMeta=%p\n", clMeta);
 
 	/* set global active flags */
@@ -243,7 +243,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 				/*create new box and save pointer in shell */
 				m_inf->shell = generic_box_struct (std::move(offsets), sizeof(T), count);
 			}
-			addNewClassMetaInformation(typeidName, m_inf->shell);
+			addNewClassMetaInformation(type_name_pointer, m_inf->shell);
 		} else {
 			dprintf("\tcount != 1\n");
 			no_active = true; // offsets wont counting yet
@@ -256,11 +256,11 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 			dprintf("\tcall hasOffsets\n");
 			// force counting class metainfo, because it can be that we have not meta for class T
 			if (hasOffsets<T>()) {
-				clMeta = contains(classMeta, typeidName);
+				clMeta = contains(classMeta, type_name_pointer);
 				assert(clMeta != NULL);
 				m_inf->shell = create_boxed_array(count, clMeta, sizeof(T));
 			} else {
-				clMeta = contains(classMeta, typeidName);
+				clMeta = contains(classMeta, type_name_pointer);
 				m_inf->shell = create_unboxed_array(count);
 			}
 			assert(clMeta != NULL);
