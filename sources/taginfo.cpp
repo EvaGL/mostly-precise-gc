@@ -22,12 +22,12 @@ void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t
 		 * first arg - num of offsets, sec arg - size of real struct, thd arg - num of pointers in the struct>
 		 */
 		object = create_generic_object(offsets_ptr.size(), size, num_el);
-		#ifdef DEBUGE_MODE
-			printf("gen_boc_struct: %zu offsets : ", offsets_ptr.size());
-			for(int i = 0; i < offsets_ptr.size(); i++) {
-				printf("%zu| ", offsets_ptr[i]);
-			}
-		#endif
+	#ifdef DEBUGE_MODE
+		printf("gen_boc_struct: %zu offsets : ", offsets_ptr.size());
+		for(int i = 0; i < offsets_ptr.size(); i++) {
+			printf("%zu| ", offsets_ptr[i]);
+		}
+	#endif
 		std::vector <size_t>::iterator it_offset = offsets_ptr.begin(); /**< create iterator for offsets_ptr*/
 		POINTER_DESCR descr; /**< temprorary element for saving offset*/
 		for ( size_t iter_p = 0; iter_p < offsets_ptr.size(); iter_p++, it_offset++) { /* save all pointers in object */
@@ -44,7 +44,7 @@ void * generic_box_struct (std::vector <size_t> offsets_ptr, size_t size, size_t
 	catch (...) {
 		printf("Error! Couldn't create generic box struct!");
 	}
-	return object;	
+	return object;
 }
 
 /* simple, 1-word object with num 2, struct with num 1*/

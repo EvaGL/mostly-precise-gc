@@ -76,7 +76,7 @@ struct Stack {
 	int size;
 
 	int push (void * new_element) {
-		StackEl * st = (StackEl *) malloc (sizeof(StackEl));
+		StackEl * st = (StackEl *) my_malloc (sizeof(StackEl));
 		if (!st || size >= max_stack_size) {
 			// fails to allocate memory
 			return 1;
@@ -95,7 +95,8 @@ struct Stack {
 		void * res = top->pointer;
 		StackEl * st = top;
 		top = top->prev;
-		free(st);
+		// free(st);
+		transfer_to_automatic_objects(st);
 		return res;
 	}
 
@@ -120,7 +121,7 @@ int go (void * pointer) {
 		dprintf("\nreturn! --- NULL or NON-heap pointer %p\n", pointer);
 		return 0;
 	}
-	Stack * vertices = (Stack *)malloc(sizeof(Stack));
+	Stack * vertices = (Stack *)my_malloc(sizeof(Stack));
 	vertices->top = NULL;
 	vertices->size = 0;
 	vertices->push(pointer);
@@ -137,13 +138,14 @@ int go (void * pointer) {
 		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
 
 		if (!get_mark(bm)) {
-			dprintf("%p %p already marked\n ", bm, v);
+			dprintf("go: alive: bm:%p v:%p tag->model:%i\n", bm, v, tag->model);
 			mark(bm);
 		#ifdef DEBUGE_MODE
 			live_object_count++;
 		#endif
+		} else {
+			dprintf("%p %p already marked\n ", bm, v);
 		}
-		dprintf("go: alive: bm:%p v:%p tag->model:%i\n", bm, v, tag->model);
 		try {
 			switch (tag->model) {
 				case 1: {  /* boxed object */
@@ -159,11 +161,11 @@ int go (void * pointer) {
 									dprintf("go : tag 1 : push : %p %i %i\n", next_vertice, get_mark(next_vertice),
 										get_mark(get_meta_inf(next_vertice)));
 									if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
-										dprintf("FUNCTION Go : tag : case1 : out of memory\n");
+										dprintf("go : tag 1 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
+											get_mark(next_vertice));
 										stack_overflow = true;
 									} else {
-										dprintf("go : tag 1 : NOT push : %p ;mark = %i \n", next_vertice,
-											get_mark(next_vertice));
+										dprintf("FUNCTION Go : tag : case1 : offset is pushed\n");
 									}
 								}
 							}
@@ -187,11 +189,11 @@ int go (void * pointer) {
 									void * next_vertice = get_next_obj(p);
 									if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
 										if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
-											dprintf("FUNCTION Go : tag : case3 : out of memory\n");
+											dprintf("go : tag 3 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
+												get_mark(next_vertice));
 											stack_overflow = true;
 										} else {
-											dprintf("go : tag 3 : NOT push : %p ;mark = %i \n", next_vertice,
-												get_mark(next_vertice));
+											dprintf("FUNCTION Go : tag : case3 : offset is pushed\n");
 										}
 									}
 								}
@@ -214,7 +216,8 @@ int go (void * pointer) {
 			exit(1);
 		}
 	}
-	free(vertices);
+	// free(vertices);
+	transfer_to_automatic_objects(vertices);
 	return stack_overflow;
 }
 
@@ -239,10 +242,20 @@ int gc () {
 	it is true in our terms iff p --- is valid non-managed object pointer;
 * @param p --- pointer on object to be freed
 */
-void operator delete (void * p) {
+// To redefine we need to ba accurate with std structures
+// void operator delete (void * p) {
 // TODO: needs check on managed; if true --- not to call free, otherwise call free
 // TODO: then to call
-}
+	// if (!is_managed(p)) {
+	// 	free(p);
+	// }
+// Problem: we don't know is object managed or not!
+// because in managed case p points to the beggining of the object
+// and p != chunck begin
+// we can try to cast and IFF it is equal to the chunk begin
+// then object is managed
+// but it is too much to do for this simple perpouse
+// }
 
 /**
 * @function gc_delete

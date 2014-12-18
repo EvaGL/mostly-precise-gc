@@ -133,10 +133,11 @@ public:
 				dprintf("\tno_active\n");
 				return;
 			}
-			dprintf("\theap\n");
+			dprintf("\theap; offsets:push_back\n");
 			assert(current_pointer_to_object != 0);
 			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
 		}
+		dprintf("end gc_ptr()\n");
 	}
 
 	/**

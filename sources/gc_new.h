@@ -116,7 +116,7 @@ bool hasOffsets (void) {
 		if (clMeta) {
 			m_inf->shell = clMeta;
 		} else {
-			m_inf->shell = generic_box_struct (offsets, sizeof(T), 1);
+			m_inf->shell = generic_box_struct (std::move(offsets), sizeof(T), 1);
 			addNewClassMetaInformation(typeidName, m_inf->shell);
 		}
 	}
@@ -124,6 +124,7 @@ bool hasOffsets (void) {
 	bool result = (!offsets.empty());
 	/* restore old global variable values */
 	temp.swap(offsets);
+	temp.clear();
 	current_pointer_to_object = old_current_pointer_to_object;
 	nesting_level--;
 	dprintf("hasOffsets: return\n");
@@ -159,8 +160,10 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	meta<T>* m_inf = NULL;
 	/* initialize object which will be store the result and allocate space */
 	void * res = my_malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));
+	dprintf("gc_new: %p\n", res);
 	transfer_to_automatic_objects(res);
 	nesting_level++;
+
 	if (clMeta != NULL) {
 		dprintf("\tclMeta != NULL\n");
 		if (count == 1) {
@@ -238,7 +241,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 			} else {
 				dprintf("\toffsets is not empty: count == %i\n", offsets.size());
 				/*create new box and save pointer in shell */
-				m_inf->shell = generic_box_struct (offsets, sizeof(T), count);
+				m_inf->shell = generic_box_struct (std::move(offsets), sizeof(T), count);
 			}
 			addNewClassMetaInformation(typeidName, m_inf->shell);
 		} else {
