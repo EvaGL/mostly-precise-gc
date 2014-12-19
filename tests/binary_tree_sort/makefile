@@ -1,6 +1,6 @@
 SOURCE=binary_tree_sort.cpp List.cpp Tree.cpp
 CPPC=g++
-LOAD_LIBRARY=-L /usr/local/lib/ -l gc -l pthread -l msmalloc
+LOAD_LIBRARY=-L /usr/local/lib/ -l preciseGC -l pthread -l msmalloc
 
 all: output
 
