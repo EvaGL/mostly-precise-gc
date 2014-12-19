@@ -42,13 +42,13 @@
 #include <sys/time.h>
 #include <cstdlib>
 
-#include <libgc/libgc.h>
-
 #define GC
 
-//#ifdef GC
-//#  include "gc.h"
-//#endif
+#ifndef GC
+  #include <gc.h>
+#else
+  #include <libgc/libgc.h>
+#endif
 
 //  These macros were a quick hack for the Macintosh.
 //
@@ -84,211 +84,212 @@ static const int kMaxTreeDepth = 16;//16;
 
 typedef struct Node0 *Node;
 
+#ifdef GC
 struct Node0 {
-        //Node left;
-        //Node right;
 	gc_ptr<Node0> left;
 	gc_ptr<Node0> right;
-        int i, j;
-        Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
-        Node0() {} // { left = 0; right = 0; }
-#       ifndef GC
-        //  ~Node0() { if (left) delete left; if (right) delete right; }
-#	endif
+  int i, j;
+  Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
+  Node0() {} // { left = 0; right = 0; }
 };
+#else
+struct Node0 {
+  Node0 * left;
+  Node0 * right;
+  int i, j;
+  Node0(Node0 * l, Node0 * r) { left = l; right = r; }
+  Node0() {}
+  ~Node0() { if (left) delete left; if (right) delete right; }
+};
+#endif
 
 struct GCBench {
 
-        // Nodes used by a tree of a given size
-        static int TreeSize(int i) {
-                return ((1 << (i + 1)) - 1);
-        }
+  // Nodes used by a tree of a given size
+  static int TreeSize(int i) {
+    return ((1 << (i + 1)) - 1);
+  }
 
-        // Number of iterations to use for a given tree depth
-        static int NumIters(int i) {
-                return 2 * TreeSize(kStretchTreeDepth) / TreeSize(i);
-        }
+  // Number of iterations to use for a given tree depth
+  static int NumIters(int i) {
+    return 2 * TreeSize(kStretchTreeDepth) / TreeSize(i);
+  }
 
-        // Build tree top down, assigning to older objects.
-        static void Populate(int iDepth, gc_ptr<Node0> thisNode) {
-                if (iDepth<=0) {
-                        return;
-                } else {
-                        iDepth--;
-#			ifndef GC
-                          thisNode->left  = new Node0();
-                          thisNode->right = new Node0();
-#			else
-                         // thisNode->left  = new (GC_NEW(Node0)) Node0();
-                         // thisNode->right = new (GC_NEW(Node0)) Node0();
-			thisNode->left = gc_new<Node0>(1);
-			thisNode->right = gc_new<Node0>(1);
-		
-
-#			endif
-                        Populate (iDepth, thisNode->left);
-                        Populate (iDepth, thisNode->right);
-                }
-        }
-
-        // Build tree bottom-up
-        static gc_ptr<Node0> MakeTree(int iDepth) {
-                if (iDepth<=0) {
-#		     ifndef GC
-                        return new Node0();
-#		     else
-                        //return new (GC_NEW(Node0)) Node0();
-			return gc_new<Node0>(1);
-#		     endif
-                } else {
-#		     ifndef GC
-                        return new Node0(MakeTree(iDepth-1),
-                                         MakeTree(iDepth-1));
-#		     else
-                        //return new (GC_NEW(Node0)) Node0(MakeTree(iDepth-1),
-                        //                 		 MakeTree(iDepth-1));
-			// gc_ptr<Node0> res;
-			// res = gc_new<Node0>(1);
-			// *res = Node0 (MakeTree(iDepth-1),MakeTree(iDepth-1));
-			// return res;
-                        return gc_new<Node0, gc_ptr<Node0>, gc_ptr<Node0>>(MakeTree(iDepth-1),MakeTree(iDepth-1));;
-			
-#		     endif
-                }
-        }
-
-        static void PrintDiagnostics() {
-#if 0
-                long lFreeMemory = Runtime.getRuntime().freeMemory();
-                long lTotalMemory = Runtime.getRuntime().totalMemory();
-
-                System.out.print(" Total memory available="
-                                 + lTotalMemory + " bytes");
-                System.out.println("  Free memory=" + lFreeMemory + " bytes");
-#endif
-        }
-
-        static void TimeConstruction(int depth) {
-                long    tStart, tFinish;
-                int     iNumIters = NumIters(depth);
-                gc_ptr<Node0>    tempTree;
-
-                cout << "Creating " << iNumIters
-                     << " trees of depth " << depth << endl;
-                
-                tStart = currentTime();
-                for (int i = 0; i < iNumIters; ++i) {
-#			ifndef GC
-                          tempTree = new Node0();
-#			else
-//                          tempTree = new (GC_NEW(Node0)) Node0();
-			tempTree = gc_new<Node0> (1);
-#			endif
-                        Populate(depth, tempTree);
-#		        ifndef GC
-				printf ("WHAT?!\n");
-                          delete tempTree;
-#			endif
-                        tempTree.setNULL();
-                }
-		//mark_and_sweep(); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                tFinish = currentTime();
-                cout << "\tTop down construction took "
-                     << elapsedTime(tFinish - tStart) << " msec" << endl;
-                     
-                tStart = currentTime();
-                for (int i = 0; i < iNumIters; ++i) {
-                        tempTree = MakeTree(depth);
-#			ifndef GC
-                          delete tempTree;
-#			endif
-                        tempTree.setNULL();
-                }
-                tFinish = currentTime();
-                cout << "\tBottom up construction took "
-                     << elapsedTime(tFinish - tStart) << " msec" << endl;
-
-        }
-
-        void main() {
-                gc_ptr<Node0>    root;
-                gc_ptr<Node0>    longLivedTree;
-                gc_ptr<Node0>    tempTree;
-                long    tStart, tFinish;
-                long    tElapsed;
-
+  // Build tree top down, assigning to older objects.
 #ifdef GC
-// GC_full_freq = 30;
-//GC_enable_incremental();
+  static void Populate (int iDepth, gc_ptr<Node0> thisNode)
+#else
+  static void Populate (int iDepth, Node0 * thisNode)
 #endif
-                cout << "Garbage Collector Test" << endl;
-                cout << " Live storage will peak at "
-                     << 2 * sizeof(Node0) * TreeSize(kLongLivedTreeDepth) + sizeof(double) * kArraySize
-                     << " bytes." << endl << endl;
-                cout << " Stretching memory with a binary tree of depth "
-                     << kStretchTreeDepth << endl;
-  //              PrintDiagnostics();
-               
-                tStart = currentTime();
-                
-                // Stretch the memory space quickly
-                tempTree = MakeTree(kStretchTreeDepth);
-//		return; //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#		ifndef GC
-                  delete tempTree;
-#		endif
-		//mark_and_sweep();
-                tempTree.setNULL();
+  {
+    if (iDepth<=0) {
+      return;
+    } else {
+      iDepth--;
+    #ifndef GC
+      thisNode->left  = new (GC_NEW(Node0)) Node0();
+      thisNode->right = new (GC_NEW(Node0)) Node0();
+    #else
+      thisNode->left = gc_new<Node0>(1);
+      thisNode->right = gc_new<Node0>(1);
+    #endif
+      Populate (iDepth, thisNode->left);
+      Populate (iDepth, thisNode->right);
+    }
+  }
 
-                // Create a long lived object
-                cout << " Creating a long-lived binary tree of depth "
-                     << kLongLivedTreeDepth << endl;
-#		ifndef GC
-                  longLivedTree = new Node0();
-#		else 
-                  //longLivedTree = new (GC_NEW(Node0)) Node0();
-		longLivedTree = gc_new<Node0>(1);
-#		endif
-                Populate(kLongLivedTreeDepth, longLivedTree);
-                // Create long-lived array, filling half of it
-                cout << " Creating a long-lived array of "
-                     << kArraySize << " doubles" << endl;
-#		ifndef GC
-                  double *array = new double[kArraySize];
-#		else
-                  gc_ptr<double> array = gc_new<double>(kArraySize);
-		//		GC_MALLOC_ATOMIC(sizeof(double) * kArraySize);
-#		endif
-                for (int i = 0; i < kArraySize/2; ++i) {
-                        array[i] = 1.0/i;
-                }
-               // PrintDiagnostics();
+  // Build tree bottom-up
+#ifdef GC
+  static gc_ptr<Node0> MakeTree(int iDepth)
+#else
+  static Node0 * MakeTree(int iDepth)
+#endif
+  {
+    if (iDepth<=0) {
+    #ifndef GC
+      return new (GC_NEW(Node0)) Node0();
+    #else
+      return gc_new<Node0>(1);
+    #endif
+    } else {
+    #ifndef GC
+      return new (GC_NEW(Node0)) Node0(MakeTree(iDepth-1), MakeTree(iDepth-1));
+    #else
+      return gc_new<Node0, gc_ptr<Node0>, gc_ptr<Node0>>(MakeTree(iDepth-1),MakeTree(iDepth-1));;
+    #endif
+    }
+  }
 
-                for (int d = kMinTreeDepth; d <= kMaxTreeDepth; d += 2)
-		{
-                        TimeConstruction(d);
-			//mark_and_sweep();
-                }
+  static void PrintDiagnostics() {
+  #if 0
+    long lFreeMemory = Runtime.getRuntime().freeMemory();
+    long lTotalMemory = Runtime.getRuntime().totalMemory();
 
-                if (longLivedTree == 0) cout<<"Tree fail"<<endl;
-		if ( array[1000] != 1.0/1000)
-                        cout << "Array Failed" << endl;
-                                        // fake reference to LongLivedTree
-                                        // and array
-                                        // to keep them from being optimized away
+    System.out.print(" Total memory available="
+                   + lTotalMemory + " bytes");
+    System.out.println("  Free memory=" + lFreeMemory + " bytes");
+  #endif
+  }
 
-                tFinish = currentTime();
-                tElapsed = elapsedTime(tFinish-tStart);
-                PrintDiagnostics();
-                cout << "Completed in " << tElapsed << " msec" << endl;
-#		ifdef GC
-//		  cout << "Completed " << GC_gc_no << " collections" <<endl;
-//		  cout << "Heap size is " << GC_get_heap_size() << endl;
-#		endif
-        }
+  static void TimeConstruction(int depth) {
+    long    tStart, tFinish;
+    int     iNumIters = NumIters(depth);
+  #ifdef GC
+    gc_ptr<Node0>    tempTree;
+  #else
+    Node0 * tempTree;
+  #endif
+    cout << "Creating " << iNumIters << " trees of depth " << depth << endl;
+
+    tStart = currentTime();
+    for (int i = 0; i < iNumIters; ++i) {
+    #ifndef GC
+      tempTree = new (GC_NEW(Node0)) Node0();
+    #else
+      tempTree = gc_new<Node0> (1);
+    #endif
+      Populate(depth, tempTree);
+    #ifndef GC
+      // delete tempTree;
+    #else
+      tempTree.setNULL();
+    #endif
+    }
+
+    tFinish = currentTime();
+    cout << "\tTop down construction took " << elapsedTime(tFinish - tStart) << " msec" << endl;
+
+    tStart = currentTime();
+    for (int i = 0; i < iNumIters; ++i) {
+      tempTree = MakeTree(depth);
+    #ifndef GC
+      // delete tempTree;
+    #else
+      tempTree.setNULL();
+    #endif
+    }
+    tFinish = currentTime();
+    cout << "\tBottom up construction took " << elapsedTime(tFinish - tStart) << " msec" << endl;
+  }
+
+  void main() {
+  #ifdef GC
+    gc_ptr<Node0>    root;
+    gc_ptr<Node0>    longLivedTree;
+    gc_ptr<Node0>    tempTree;
+  #else
+    Node0 * root, * longLivedTree, * tempTree;
+  #endif
+    long    tStart, tFinish;
+    long    tElapsed;
+
+  #ifndef GC
+    GC_full_freq = 30;
+    GC_enable_incremental();
+  #endif
+    cout << "Garbage Collector Test" << endl;
+    cout << " Live storage will peak at "
+      << 2 * sizeof(Node0) * TreeSize(kLongLivedTreeDepth) + sizeof(double) * kArraySize
+      << " bytes." << endl << endl;
+    cout << " Stretching memory with a binary tree of depth " << kStretchTreeDepth << endl;
+  #ifndef GC
+    PrintDiagnostics();
+  #endif
+    tStart = currentTime();
+
+    // Stretch the memory space quickly
+    tempTree = MakeTree(kStretchTreeDepth);
+  #ifndef GC
+    // delete tempTree;
+  #else
+    tempTree.setNULL();
+  #endif
+
+    // Create a long lived object
+    cout << " Creating a long-lived binary tree of depth " << kLongLivedTreeDepth << endl;
+  #ifndef GC
+    longLivedTree = new (GC_NEW(Node0)) Node0();
+  #else 
+    longLivedTree = gc_new<Node0>(1);
+  #endif
+    Populate(kLongLivedTreeDepth, longLivedTree);
+    // Create long-lived array, filling half of it
+    cout << " Creating a long-lived array of " << kArraySize << " doubles" << endl;
+  #ifndef GC
+    double * array = (double *) GC_MALLOC_ATOMIC(sizeof(double) * kArraySize);
+  #else
+    gc_ptr<double> array = gc_new<double>(kArraySize);
+  #endif
+    for (int i = 0; i < kArraySize/2; ++i) {
+      array[i] = 1.0/i;
+    }
+
+  #ifndef GC
+    PrintDiagnostics();
+  #endif
+
+    for (int d = kMinTreeDepth; d <= kMaxTreeDepth; d += 2) {
+      TimeConstruction(d);
+    }
+
+    if (longLivedTree == 0) cout << "Tree fail" << endl;
+    if ( array[1000] != 1.0/1000) cout << "Array Failed" << endl;
+    // fake reference to LongLivedTree
+    // and array
+    // to keep them from being optimized away
+
+    tFinish = currentTime();
+    tElapsed = elapsedTime(tFinish-tStart);
+    PrintDiagnostics();
+    cout << "Completed in " << tElapsed << " msec" << endl;
+  #ifdef GC
+  //		  cout << "Completed " << GC_gc_no << " collections" <<endl;
+  //		  cout << "Heap size is " << GC_get_heap_size() << endl;
+  #endif
+  }
 };
 
 main () {
-    GCBench x;
-    x.main();
+  GCBench x;
+  x.main();
 }
