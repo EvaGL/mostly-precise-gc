@@ -76,7 +76,7 @@ struct Stack {
 	int size;
 
 	int push (void * new_element) {
-		StackEl * st = (StackEl *) my_malloc (sizeof(StackEl));
+		StackEl * st = (StackEl *)malloc(sizeof(StackEl));
 		if (!st || size >= max_stack_size) {
 			// fails to allocate memory
 			return 1;
@@ -121,7 +121,7 @@ int go (void * pointer) {
 		dprintf("\nreturn! --- NULL or NON-heap pointer %p\n", pointer);
 		return 0;
 	}
-	Stack * vertices = (Stack *)my_malloc(sizeof(Stack));
+	Stack * vertices = (Stack *)malloc(sizeof(Stack));
 	vertices->top = NULL;
 	vertices->size = 0;
 	vertices->push(pointer);
@@ -297,7 +297,6 @@ void mark_and_sweep () {
 #ifdef DEBUGE_MODE	
 	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
 #endif
-	dprintf("sweep");
 	while (stack_overflow) {
 		dprintf("mark_after_overflow\n");
 		stack_overflow = mark_after_overflow();
@@ -310,6 +309,7 @@ void mark_and_sweep () {
 #endif
 
 	// call sweep function (look at msmalloc)
+	dprintf("call sweep\n");
 	sweep();
 	printf("after: "); printDlMallocInfo(); fflush(stdout);
 }
