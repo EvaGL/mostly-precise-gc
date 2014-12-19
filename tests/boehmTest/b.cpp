@@ -37,37 +37,30 @@
 //      commercial Java implementations seriously attempt to minimize GC pause
 //      times.
 
-#include <new>
 #include <iostream>
 #include <sys/time.h>
 #include <cstdlib>
 
 #define GC
+#define precise
 
-#ifndef GC
-  #include <gc.h>
-#else
-  #include <libgc/libgc.h>
+#ifdef GC
+  #ifdef precise
+    #include <libgc/libgc.h>
+  #else
+    #include <gc.h>
+  #endif
 #endif
 
 //  These macros were a quick hack for the Macintosh.
-//
-//  #define currentTime() clock()
-//  #define elapsedTime(x) ((1000*(x))/CLOCKS_PER_SEC)
-
 #define currentTime() stats_rtclock()
 #define elapsedTime(x) (x)
-
-/* Get the current time in milliseconds */
-
 
 using std::cout;
 using std::endl;
 
-
-unsigned
-stats_rtclock( void )
-{
+/* Get the current time in milliseconds */
+unsigned stats_rtclock( void ) {
   struct timeval t;
   struct timezone tz;
 
@@ -84,13 +77,17 @@ static const int kMaxTreeDepth = 16;//16;
 
 typedef struct Node0 *Node;
 
-#ifdef GC
+#ifdef precise
 struct Node0 {
 	gc_ptr<Node0> left;
 	gc_ptr<Node0> right;
-  int i, j;
-  Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
-  Node0() {} // { left = 0; right = 0; }
+	int i, j;
+	Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
+	Node0() {
+    #ifndef GC
+      left = right = NULL;
+    #endif
+  } // { left = 0; right = 0; }
 };
 #else
 struct Node0 {
@@ -116,7 +113,7 @@ struct GCBench {
   }
 
   // Build tree top down, assigning to older objects.
-#ifdef GC
+#ifdef precise
   static void Populate (int iDepth, gc_ptr<Node0> thisNode)
 #else
   static void Populate (int iDepth, Node0 * thisNode)
@@ -126,36 +123,50 @@ struct GCBench {
       return;
     } else {
       iDepth--;
-    #ifndef GC
-      thisNode->left  = new (GC_NEW(Node0)) Node0();
-      thisNode->right = new (GC_NEW(Node0)) Node0();
-    #else
+    #ifdef GC
+    #ifdef precise
       thisNode->left = gc_new<Node0>(1);
       thisNode->right = gc_new<Node0>(1);
+    #else
+      thisNode->left  = new (GC_NEW(Node0)) Node0();
+      thisNode->right = new (GC_NEW(Node0)) Node0();
     #endif
+    #else
+      thisNode->left  = new Node0();
+      thisNode->right = new Node0();
+    #endif
+
       Populate (iDepth, thisNode->left);
       Populate (iDepth, thisNode->right);
     }
   }
 
   // Build tree bottom-up
-#ifdef GC
+#ifdef precise
   static gc_ptr<Node0> MakeTree(int iDepth)
 #else
   static Node0 * MakeTree(int iDepth)
 #endif
   {
     if (iDepth<=0) {
-    #ifndef GC
-      return new (GC_NEW(Node0)) Node0();
-    #else
+    #ifdef GC
+    #ifdef precise
       return gc_new<Node0>(1);
+    #else
+      return new (GC_NEW(Node0)) Node0();
+    #endif
+    #else
+      return new Node0();
     #endif
     } else {
-    #ifndef GC
-      return new (GC_NEW(Node0)) Node0(MakeTree(iDepth-1), MakeTree(iDepth-1));
-    #else
+    #ifdef GC
+    #ifdef precise
       return gc_new<Node0, gc_ptr<Node0>, gc_ptr<Node0>>(MakeTree(iDepth-1),MakeTree(iDepth-1));;
+    #else
+      return new (GC_NEW(Node0)) Node0(MakeTree(iDepth-1), MakeTree(iDepth-1));
+    #endif
+    #else
+      return new Node0(MakeTree(iDepth-1), MakeTree(iDepth-1));
     #endif
     }
   }
@@ -174,7 +185,7 @@ struct GCBench {
   static void TimeConstruction(int depth) {
     long    tStart, tFinish;
     int     iNumIters = NumIters(depth);
-  #ifdef GC
+  #ifdef precise
     gc_ptr<Node0>    tempTree;
   #else
     Node0 * tempTree;
@@ -183,16 +194,24 @@ struct GCBench {
 
     tStart = currentTime();
     for (int i = 0; i < iNumIters; ++i) {
-    #ifndef GC
-      tempTree = new (GC_NEW(Node0)) Node0();
-    #else
+    #ifdef GC
+    #ifdef precise
       tempTree = gc_new<Node0> (1);
+    #else
+      tempTree = new (GC_NEW(Node0)) Node0();
+    #endif
+    #else
+      tempTree = new Node0();
     #endif
       Populate(depth, tempTree);
     #ifndef GC
+      // cout << "delete" << endl;
       // delete tempTree;
+      // cout << "deleted" << endl;
     #else
-      tempTree.setNULL();
+      #ifdef precise
+        tempTree.setNULL();
+      #endif
     #endif
     }
 
@@ -205,7 +224,9 @@ struct GCBench {
     #ifndef GC
       // delete tempTree;
     #else
-      tempTree.setNULL();
+      #ifdef precise
+        tempTree.setNULL();
+      #endif
     #endif
     }
     tFinish = currentTime();
@@ -213,7 +234,7 @@ struct GCBench {
   }
 
   void main() {
-  #ifdef GC
+  #ifdef precise
     gc_ptr<Node0>    root;
     gc_ptr<Node0>    longLivedTree;
     gc_ptr<Node0>    tempTree;
@@ -223,17 +244,21 @@ struct GCBench {
     long    tStart, tFinish;
     long    tElapsed;
 
-  #ifndef GC
+  #ifdef GC
+  #ifndef precise
     GC_full_freq = 30;
     GC_enable_incremental();
+  #endif
   #endif
     cout << "Garbage Collector Test" << endl;
     cout << " Live storage will peak at "
       << 2 * sizeof(Node0) * TreeSize(kLongLivedTreeDepth) + sizeof(double) * kArraySize
       << " bytes." << endl << endl;
     cout << " Stretching memory with a binary tree of depth " << kStretchTreeDepth << endl;
-  #ifndef GC
+  #ifdef GC
+  #ifndef precise
     PrintDiagnostics();
+  #endif
   #endif
     tStart = currentTime();
 
@@ -242,30 +267,43 @@ struct GCBench {
   #ifndef GC
     // delete tempTree;
   #else
+  #ifdef precise
     tempTree.setNULL();
+  #endif
   #endif
 
     // Create a long lived object
     cout << " Creating a long-lived binary tree of depth " << kLongLivedTreeDepth << endl;
-  #ifndef GC
-    longLivedTree = new (GC_NEW(Node0)) Node0();
-  #else 
+  #ifdef GC
+  #ifdef precise
     longLivedTree = gc_new<Node0>(1);
+  #else
+    longLivedTree = new (GC_NEW(Node0)) Node0();
   #endif
+  #else
+    longLivedTree = new Node0();
+  #endif
+
     Populate(kLongLivedTreeDepth, longLivedTree);
     // Create long-lived array, filling half of it
     cout << " Creating a long-lived array of " << kArraySize << " doubles" << endl;
-  #ifndef GC
-    double * array = (double *) GC_MALLOC_ATOMIC(sizeof(double) * kArraySize);
-  #else
+  #ifdef GC
+  #ifdef precise
     gc_ptr<double> array = gc_new<double>(kArraySize);
+  #else
+    double * array = (double *) GC_MALLOC_ATOMIC(sizeof(double) * kArraySize);
+  #endif
+  #else
+    double * array = (double *) malloc (sizeof(double) * kArraySize);
   #endif
     for (int i = 0; i < kArraySize/2; ++i) {
       array[i] = 1.0/i;
     }
 
-  #ifndef GC
+  #ifdef GC
+  #ifndef precise
     PrintDiagnostics();
+  #endif
   #endif
 
     for (int d = kMinTreeDepth; d <= kMaxTreeDepth; d += 2) {
