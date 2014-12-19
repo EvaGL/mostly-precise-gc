@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 AC_CONFIG_MACRO_DIR([m4])
 AC_PREREQ([2.68])
-AC_INIT([libgc], [0.1], [noreply@github.com])
-AM_INIT_AUTOMAKE([libgc], [0.1])
+AC_INIT([libpreciseGC], [0.1], [noreply@github.com])
+AM_INIT_AUTOMAKE([libpreciseGC], [0.1])
 LT_INIT
 
 AC_CONFIG_HEADERS([config.h])
