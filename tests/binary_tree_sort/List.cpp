@@ -19,6 +19,7 @@ int ListElement::getValue (void) {
 }
 
 List::List (gc_ptr<int> mas, int n) {
+	head = gc_new<ListElement>();
 	for (int i = 0; i < n; i++) {
 		this->insert(mas[i]);
 	}
@@ -26,7 +27,7 @@ List::List (gc_ptr<int> mas, int n) {
 
 void List::insert (int i) {
 	gc_ptr <ListElement> newEl = gc_new<ListElement, int, gc_ptr<ListElement>>(i, head);
-	head = newEl;
+	this->head = newEl;
 }
 
 void List::insert (gc_ptr<int> mas, int n) {
@@ -37,7 +38,7 @@ void List::insert (gc_ptr<int> mas, int n) {
 
 void List::print () {
 	gc_ptr<ListElement> temp = this->head;
-	while (temp.get() != NULL) {
+	while (temp != NULL) {
 		temp->print();
 		temp = temp->getNext();
 	}
@@ -47,7 +48,7 @@ void List::print () {
 int List::count (void) {
 	gc_ptr<ListElement> temp = this->head;
 	int res = 0;
-	while (temp.get() != NULL) {
+	while (temp != NULL) {
 		res++;
 		temp = temp->getNext();
 	}
@@ -57,7 +58,7 @@ int List::count (void) {
 gc_ptr<List> List::tree_sort () {
 	gc_ptr<Tree> tree = gc_new<Tree>();
 	gc_ptr<ListElement> tmp = head;
-	while (tmp.get() != NULL) {
+	while (tmp != NULL) {
 		tree->insert(tmp->getValue());
 		tmp = tmp->getNext();
 	}

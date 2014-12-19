@@ -4,7 +4,7 @@
 #include "List.h"
 #include "Tree.h"
 
-static int array_size = 100;
+static int array_size = 2;
 bool debug_print = true;
 
 void test () {
@@ -20,24 +20,27 @@ void test () {
 		dprintf ("2\n"); fflush (stdout);
 		list->tree_sort();
 		dprintf ("3\n"); fflush (stdout);
+		// gc();
 	}
 
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
 	// mark_and_sweep();
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
+	// gc();
 	list = list->tree_sort();
+	// gc();
 }
 
 int main (int argc, char * argv[]) {
-	for (int i = 0; i < argc; i++) {
-		std::string arg = argv[i];
-		if (arg.length() == 9 && arg.compare(0, 8, "dprintf=") == 0) {
-			debug_print = (arg.compare(8, 1, "1") == 0);
-		}
-	}
-	for (int i = 0; i < 10; i++) {
+	// for (int i = 0; i < argc; i++) {
+	// 	std::string arg = argv[i];
+	// 	if (arg.length() == 9 && arg.compare(0, 8, "dprintf=") == 0) {
+	// 		debug_print = (arg.compare(8, 1, "1") == 0);
+	// 	}
+	// }
+	// for (int i = 0; i < 10; i++) {
 		test();
-	}
-	gc();
+	// }
+	// gc();
 	return 0;
 }

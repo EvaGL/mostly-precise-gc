@@ -1,12 +1,11 @@
 #include <iostream>
-
 #include <sys/time.h>
 #define currentTime() stats_rtclock()
 #define elapsedTime(x) (x)
 
 using namespace std;
 
-// #define GC_TEST
+#define GC_TEST
 
 #ifndef GC_TEST
 	#ifdef GC
@@ -95,10 +94,9 @@ static Node0 * MakeTree(int iDepth) {
 }
 #endif
 
-
-int main (void) {
+void test () {
 	long tStart, tFinish;
-	int depth = 26, count = 1;
+	int depth = 20, count = 1;
 	tStart = currentTime();
 	for (int i = 0; i < count; i++) {
 	#ifdef GC
@@ -112,12 +110,22 @@ int main (void) {
 	#endif
 	}
 	tFinish = currentTime();
-	#ifdef GC
-		cout << "GC Yes" << endl;
-	#else
-		cout << "GC NO" << endl;
-	#endif
+#ifdef GC
+	cout << "GC Yes" << endl;
+#else
+	cout << "GC NO" << endl;
+#endif
 	cout << elapsedTime(tFinish - tStart) << " msec" << endl;
+}
 
+int main (void) {
+	test();
+#ifdef GC
+	long tStart, tFinish;
+	tStart = currentTime();
+	gc();
+	tFinish = currentTime();
+	cout << "gc time: " << elapsedTime(tFinish - tStart) << " msec" << endl;
+#endif
 	return 0;
 }

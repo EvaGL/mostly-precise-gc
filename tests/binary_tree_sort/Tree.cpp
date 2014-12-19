@@ -8,7 +8,7 @@ Node::Node (int i, gc_ptr<Node> l, gc_ptr<Node> r) {
 
 void Node::insert (int i) {
 	if (value > i) {
-		if (left.get() == NULL) {
+		if (left == NULL) {
 			gc_ptr<Node> l, r;
 			gc_ptr<Node> newEl = gc_new<Node, int, gc_ptr<Node>, gc_ptr<Node>>(i, l, r);
 			left = newEl;
@@ -16,7 +16,7 @@ void Node::insert (int i) {
 			left->insert(i);
 		}
 	} else {
-		if (right.get() == NULL) {
+		if (right == NULL) {
 			gc_ptr<Node> l, r;
 			gc_ptr<Node> newEl = gc_new<Node, int, gc_ptr<Node>, gc_ptr<Node>>(i, l, r);
 			right = newEl;
@@ -27,17 +27,17 @@ void Node::insert (int i) {
 }
 
 void Node::toList (gc_ptr<List> res) {
-	if (right.get() != NULL)
+	if (right != NULL)
 		right->toList(res);
 	res->insert(this->value);
-	if (left.get() != NULL)
+	if (left != NULL)
 		left->toList(res);
 }
 
 Tree::Tree () {}
 
 void Tree::insert (int i) {
-	if (tree.get() == NULL) {
+	if (tree == NULL) {
 		gc_ptr<Node> l, r;
 		tree = gc_new<Node, int, gc_ptr<Node>, gc_ptr<Node>>(i, l, r);
 	} else {
@@ -46,7 +46,7 @@ void Tree::insert (int i) {
 }
 
 bool Tree::isEmpty (void) {
-	return tree.get() == NULL;
+	return tree == NULL;
 }
 
 gc_ptr<List> Tree::toList (void) {

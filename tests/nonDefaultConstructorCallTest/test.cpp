@@ -6,7 +6,7 @@ private:
   int size;
   gc_ptr<int> mas;
 public:
-  // A () {}
+  A () {}
 
   A (int len, const gc_ptr<int> & ar) {
     printf("A ... ");
@@ -38,9 +38,9 @@ int main (void) {
     br[i] = len - i;
   }
 
-  gc_ptr<A> a = gc_new<A, int, gc_ptr<int>&>(len, ar, 1);
+  gc_ptr<A> a = gc_new<A, int, gc_ptr<int>>(len, ar, 1);
   a->print();
-  gc_ptr<A> b = gc_new<A, int, gc_ptr<int>&>(len, br);
+  gc_ptr<A> b = gc_new<A, int, gc_ptr<int>>(len, br);
   for (int i = 0; i < len; i++) {
     ar[i] += 10;
     br[i] += 100;

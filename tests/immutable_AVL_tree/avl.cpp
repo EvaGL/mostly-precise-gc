@@ -208,6 +208,7 @@ void func (void) {
 int main (void) {
 	func();
 	mark_and_sweep();
+	gc();
 
 	return 0;
 }
