@@ -1,6 +1,6 @@
 #pragma once
 #include <stdio.h>
-#include <libgc/libgc.h>
+#include <libprecisegc/libprecisegc.h>
 #include "List.h"
 
 class Node {

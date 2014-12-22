@@ -1,4 +1,4 @@
-#include <libgc/libgc.h>
+#include <libprecisegc/libprecisegc.h>
 #include <math.h>
 
 const int n = 3;

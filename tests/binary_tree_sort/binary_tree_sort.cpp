@@ -1,6 +1,6 @@
 #include <cstdlib>
 #include <string>
-#include <libgc/libgc.h>
+#include <libprecisegc/libprecisegc.h>
 #include "List.h"
 #include "Tree.h"
 

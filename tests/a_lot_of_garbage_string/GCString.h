@@ -1,5 +1,5 @@
 #include <iostream>
-#include <libgc/libgc.h>
+#include <libprecisegc/libprecisegc.h>
 
 class GCString {
 private:

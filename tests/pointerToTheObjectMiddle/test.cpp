@@ -1,5 +1,5 @@
 #include <iostream>
-#include <libgc/libgc.h>
+#include <libprecisegc/libprecisegc.h>
 
 using namespace std;
 
