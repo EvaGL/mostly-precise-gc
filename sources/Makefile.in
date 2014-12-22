@@ -122,10 +122,10 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libgc_la_DEPENDENCIES =
-am_libgc_la_OBJECTS = gc_new.lo go.lo meta_information.lo stack.lo \
+libprecisegc_la_DEPENDENCIES =
+am_libprecisegc_la_OBJECTS = gc_new.lo go.lo meta_information.lo stack.lo \
 	taginfo.lo
-libgc_la_OBJECTS = $(am_libgc_la_OBJECTS)
+libprecisegc_la_OBJECTS = $(am_libprecisegc_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -182,8 +182,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libgc_la_SOURCES)
-DIST_SOURCES = $(libgc_la_SOURCES)
+SOURCES = $(libprecisegc_la_SOURCES)
+DIST_SOURCES = $(libprecisegc_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -330,13 +330,13 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CXXFLAGS = -std=c++11 -fPIC -O3
-lib_LTLIBRARIES = libgc.la
-pkginclude_HEADERS = libgc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h
-libgc_la_LIBADD = -lmsmalloc
-libgc_la_CFLAGS = -std=c++11 -fPIC -O3
-libgc_la_SOURCES = gc_new.cpp gc_new.h gc_ptr.h\
-go.cpp go.h libgc.h meta_information.cpp meta_information.h\
-stack.cpp stack.h taginfo.cpp taginfo.h
+lib_LTLIBRARIES = libprecisegc.la
+pkginclude_HEADERS = libprecisegc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h debug_print.h
+libprecisegc_la_LIBADD = -lmsmalloc
+libprecisegc_la_CFLAGS = -std=c++11 -fPIC -O3
+libprecisegc_la_SOURCES = gc_new.cpp gc_new.h gc_ptr.h\
+go.cpp go.h libprecisegc.h meta_information.cpp meta_information.h\
+stack.cpp stack.h taginfo.cpp taginfo.h debug_print.h
 
 all: all-am
 
@@ -408,8 +408,8 @@ clean-libLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
-libgc.la: $(libgc_la_OBJECTS) $(libgc_la_DEPENDENCIES) $(EXTRA_libgc_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(CXXLINK) -rpath $(libdir) $(libgc_la_OBJECTS) $(libgc_la_LIBADD) $(LIBS)
+libprecisegc.la: $(libprecisegc_la_OBJECTS) $(libprecisegc_la_DEPENDENCIES) $(EXTRA_libprecisegc_la_DEPENDENCIES) 
+	$(AM_V_CXXLD)$(CXXLINK) -rpath $(libdir) $(libprecisegc_la_OBJECTS) $(libprecisegc_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
