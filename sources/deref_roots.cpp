@@ -1,7 +1,9 @@
 #include "deref_roots.h"
+#include "go.h"
 #include <assert.h>
 #include <stddef.h>
 #include <msmalloc.h>
+#include <stdio.h>
 
 #define deref_mark(h) (h->p |= 1)
 #define deref_unmark(h) (h->p &= ~1)
@@ -14,31 +16,39 @@ extern "C" {
     void *mspace_malloc(mspace, size_t);
     void mspace_free(mspace, void *);
 }
-struct deref_root_handler {
+struct root_handler {
     size_t p;
-    deref_root_handler* next;
+    root_handler * next;
 };
 static mspace deref_space;
-deref_root_handler* first;
+root_handler * first;
 
 void register_dereferenced_root(void* root) {
+    root_handler * curr = first;
+    while (curr) {
+        if (plain_pointer(curr) == root) {
+            return;
+        }
+        curr = curr->next;
+    }
+    printf("dereference : %p\n", root);
     if (!deref_space) {
         deref_space = create_mspace(0, 0);
         assert(deref_space != nullptr);
     }
-    deref_root_handler* data = (deref_root_handler*) mspace_malloc(deref_space, sizeof(deref_root_handler));
+    root_handler * data = (root_handler *) mspace_malloc(deref_space, sizeof(root_handler));
     data->next = first;
     data->p = (size_t) root;
     first = data;
 }
 
 void mark_dereferenced_root(void* root) {
-    deref_root_handler* curr = first;
+    root_handler * curr = first;
     while (curr) {
         void* p = plain_pointer(curr);
         if (p == root) {
             deref_mark(curr);
-            mark(p);
+            go(p);
             return;
         }
         curr = curr->next;
@@ -46,11 +56,11 @@ void mark_dereferenced_root(void* root) {
 }
 
 void sweep_dereferenced_roots() {
-    deref_root_handler* curr = first;
-    deref_root_handler* prev = nullptr;
+    root_handler * curr = first;
+    root_handler * prev = nullptr;
     while (curr) {
         if (!deref_is_marked(curr)) {
-            deref_root_handler* tmp = curr->next;
+            root_handler * tmp = curr->next;
             if (!prev) {
                 first = curr->next;
             } else {

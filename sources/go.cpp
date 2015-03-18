@@ -9,6 +9,7 @@
 #include "stack.h"
 #include "fake_roots.h"
 #include <stdint.h>
+#include <execinfo.h>
 #include "go.h"
 #include "deref_roots.h"
 
@@ -268,9 +269,20 @@ void gc_delete (void * chunk) {
 	free(chunk);
 }
 
+extern void* __libc_stack_end;
+
 void mark_stack() {
 	void* stack_top = __builtin_frame_address(0);
-
+	void * stack_bottom = __libc_stack_end;
+	void** curr = (void**) stack_top;
+	dprintf("top - %p bottom - %p\n", stack_top, stack_bottom);
+	while (curr <= stack_bottom) {
+		if (is_heap_pointer(*curr)) {
+			dprintf("possible heap pointer: %p\n", *curr);
+			mark_dereferenced_root(*curr);
+		}
+		curr++;
+	}
 }
 
 /**
