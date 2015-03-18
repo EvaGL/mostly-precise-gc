@@ -10,6 +10,7 @@
 #include "stack.h"
 #include <stdint.h>
 #include <msmalloc.h>
+#include "deref_roots.h"
 
 // #define my_malloc no_space_malloc
 // #define my_malloc space_based_malloc
@@ -198,7 +199,11 @@ public:
 
 	/* reloaded operators for gc_ptr's objects */
 	T& operator* () const					{	return * get_ptr(ptr);									}
-	T * operator-> () const 				{	return get_ptr(ptr);									}
+	T* operator->() const {
+		T *p = get_ptr(ptr);
+		register_dereferenced_root(p);
+		return p;
+	}
 	operator T * () const 					{	return get_ptr(ptr);									}
 	T * get () const 						{	return get_ptr(ptr);									}
 	T& operator[] (size_t index) const 		{	return (get_ptr(ptr))[index];							}

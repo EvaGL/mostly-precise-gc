@@ -10,6 +10,7 @@
 #include "fake_roots.h"
 #include <stdint.h>
 #include "go.h"
+#include "deref_roots.h"
 
 extern int nesting_level;
 
@@ -267,6 +268,11 @@ void gc_delete (void * chunk) {
 	free(chunk);
 }
 
+void mark_stack() {
+	void* stack_top = __builtin_frame_address(0);
+
+}
+
 /**
 * @function mark_and_sweep
 * @detailed implements mark and sweep stop the world algorithm
@@ -275,6 +281,7 @@ void mark_and_sweep () {
 	dprintf("go.cpp: mark_and_sweep\n");
 	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
 	mark_fake_roots();
+	mark_stack();
 
 #ifdef DEBUGE_MODE
 	live_object_count = 0;
@@ -311,5 +318,6 @@ void mark_and_sweep () {
 	// call sweep function (look at msmalloc)
 	dprintf("call sweep\n");
 	sweep();
+	sweep_dereferenced_roots();
 	printf("after: "); printDlMallocInfo(); fflush(stdout);
 }

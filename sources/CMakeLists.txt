@@ -13,7 +13,8 @@ set(precisegc_LIB_SRCS
     stack.h
     taginfo.cpp
     taginfo.h
-    debug_print.h)
+    debug_print.h
+    deref_roots.cpp)
 
 add_library(precisegc SHARED ${precisegc_LIB_SRCS})
 
@@ -26,4 +27,4 @@ set_target_properties(precisegc PROPERTIES VERSION 1.0.0 SOVERSION 1)
 install(TARGETS precisegc
     LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX})
 
-install(FILES libprecisegc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h debug_print.h DESTINATION include/libprecisegc)
+install(FILES libprecisegc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h debug_print.h deref_roots.h DESTINATION include/libprecisegc)
