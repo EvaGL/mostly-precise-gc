@@ -33,4 +33,5 @@ foreach(child ${children})
 endforeach()
 
 add_custom_target(tests
-    DEPENDS gc_inside_method)
+    DEPENDS gc_inside_method
+            binary_tree_sort)

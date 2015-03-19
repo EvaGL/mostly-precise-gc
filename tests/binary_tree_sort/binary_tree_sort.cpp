@@ -38,9 +38,9 @@ int main (int argc, char * argv[]) {
 	// 		debug_print = (arg.compare(8, 1, "1") == 0);
 	// 	}
 	// }
-	// for (int i = 0; i < 10; i++) {
+	 for (int i = 0; i < 100; i++) {
 		test();
-	// }
+	 }
 	// gc();
 	return 0;
 }
