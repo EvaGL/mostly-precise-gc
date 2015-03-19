@@ -4,33 +4,28 @@
 #include <stddef.h>
 #include <msmalloc.h>
 #include <stdio.h>
+#include <sys/mman.h>
 
 #define deref_mark(h) (h->p |= 1)
 #define deref_unmark(h) (h->p &= ~1)
 #define deref_is_marked(h) (h->p & 1)
 #define plain_pointer(h) ((void*)(h->p & ~1))
 
-typedef void* mspace;
-extern "C" {
-    void *create_mspace(size_t, int);
-    void *mspace_malloc(mspace, size_t);
-    void mspace_free(mspace, void *);
-}
 struct root_handler {
     size_t p;
     root_handler * next;
 };
-static mspace deref_space;
 static constexpr size_t N = 17971;
-root_handler* hashtable[N];
+static root_handler* hashtable[N];
+static bool init = false;
+static root_handler* free_list = nullptr;
 
 void register_dereferenced_root(void* root) {
-    if (!deref_space) {
-        deref_space = create_mspace(0, 0);
-        assert(deref_space != nullptr);
+    if (!init) {
         for (size_t i = 0; i < N; ++i) {
             hashtable[i] = nullptr;
         }
+        init = true;
     }
 
     size_t hash = ((size_t)root >> 2) % N;
@@ -41,7 +36,18 @@ void register_dereferenced_root(void* root) {
         }
         curr = curr->next;
     }
-    root_handler * data = (root_handler *) mspace_malloc(deref_space, sizeof(root_handler));
+    if (free_list == nullptr) {
+        void* space = mmap(nullptr, 4096 * sizeof(root_handler), PROT_READ | PROT_WRITE,
+            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        assert(space != MAP_FAILED);
+        void* space_end = ((root_handler*) space) + 4096;
+        for (root_handler* curr = (root_handler*) space; curr < space_end; ++curr) {
+            curr->next = free_list;
+            free_list = curr;
+        }
+    }
+    root_handler * data = free_list;
+    free_list = free_list->next;
     data->next = hashtable[hash];
     data->p = (size_t) root;
     hashtable[hash] = data;
@@ -53,8 +59,10 @@ void mark_dereferenced_root(void* root) {
     while (curr) {
         void* p = plain_pointer(curr);
         if (p == root) {
-            deref_mark(curr);
-            go(p);
+            if (!deref_is_marked(curr)) {
+                deref_mark(curr);
+                go(p);
+            }
             return;
         }
         curr = curr->next;
@@ -62,6 +70,7 @@ void mark_dereferenced_root(void* root) {
 }
 
 void sweep_dereferenced_roots() {
+    size_t count = 0;
     for (size_t i = 0; i < N; ++i) {
         root_handler *curr = hashtable[i];
         root_handler *prev = nullptr;
@@ -73,8 +82,10 @@ void sweep_dereferenced_roots() {
                 } else {
                     prev->next = curr->next;
                 }
-                mspace_free(deref_space, curr);
+                curr->next = free_list;
+                free_list = curr;
                 curr = tmp;
+                count++;
             } else {
                 deref_unmark(curr);
                 prev = curr;
