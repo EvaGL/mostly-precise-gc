@@ -1,18 +1,18 @@
 #include "deref_roots.h"
 #include "go.h"
 #include <assert.h>
-#include <stddef.h>
 #include <msmalloc.h>
-#include <stdio.h>
 #include <sys/mman.h>
 
 #define deref_mark(h) (h->p |= 1)
 #define deref_unmark(h) (h->p &= ~1)
 #define deref_is_marked(h) (h->p & 1)
 #define plain_pointer(h) ((void*)(h->p & ~1))
+#define contains(h, p) (plain_pointer(h) <= p && p <= h->end)
 
 struct root_handler {
     size_t p;
+    void* end;
     root_handler * next;
 };
 static constexpr size_t N = 17971;
@@ -20,7 +20,7 @@ static root_handler* hashtable[N];
 static bool init = false;
 static root_handler* free_list = nullptr;
 
-void register_dereferenced_root(void* root) {
+void register_dereferenced_root(void* root, size_t size) {
     if (!init) {
         for (size_t i = 0; i < N; ++i) {
             hashtable[i] = nullptr;
@@ -50,6 +50,7 @@ void register_dereferenced_root(void* root) {
     free_list = free_list->next;
     data->next = hashtable[hash];
     data->p = (size_t) root;
+    data->end = (char*)root + size;
     hashtable[hash] = data;
 }
 
@@ -57,11 +58,10 @@ void mark_dereferenced_root(void* root) {
     size_t hash = ((size_t)root >> 2) % N;
     root_handler* curr = hashtable[hash];
     while (curr) {
-        void* p = plain_pointer(curr);
-        if (p == root) {
+        if (contains(curr, root)) {
             if (!deref_is_marked(curr)) {
                 deref_mark(curr);
-                go(p);
+                go(plain_pointer(curr));
             }
             return;
         }

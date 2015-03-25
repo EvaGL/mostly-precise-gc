@@ -201,7 +201,7 @@ public:
 	T& operator* () const					{	return * get_ptr(ptr);									}
 	T* operator->() const {
 		T *p = get_ptr(ptr);
-		register_dereferenced_root(p);
+		register_dereferenced_root(p, sizeof(T));
 		return p;
 	}
 	operator T * () const 					{	return get_ptr(ptr);									}
