@@ -2,8 +2,7 @@
 // Created by evagl on 26.03.15.
 //
 #include <libprecisegc/libprecisegc.h>
-#include "../../sources/threading.h"
-
+#include <libprecisegc/threading.h>
 void* routine(void* num) {
     int n = *(int*) num;
     sleep(n);
@@ -18,7 +17,7 @@ int main() {
     thread_create(&thread2, nullptr, routine, &two);
     thread_create(&thread1, nullptr, routine, &one);
     void* res;
-    pthread_join(thread1, &res);
-    pthread_join(thread2, &res);
+    thread_join(thread1, &res);
+    thread_join(thread2, &res);
     return 0;
 }
