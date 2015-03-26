@@ -43,6 +43,50 @@ struct Composite_pointer {
 };
 
 /**
+* @class base_meta
+* @brief object meta base class
+* @detailed realizes base object meta class (like interface for eatch object meta)
+*/
+class base_meta {
+public:
+	void *shell;	/**< pointer on the box(meta info struct for storing offsets) of object */
+	void * ptrptr;	/**< pointer to the real object begin */
+	size_t size;	/**< size of object */
+	virtual void del_ptr () = 0;	/**< delete meta-ptr */
+	virtual void* get_begin () = 0;	/**< get begin of object (pointer on meta)*/
+};
+
+/**
+* @class meta
+* @brief template class; realizes specific meta for eatch object;
+* @detailed it creates in gc_new and it it stored directly with (right before) the
+	allocated object.
+*/
+template <class T>
+class meta : public base_meta {
+public:
+	T* ptr;	/**< "typed" pointer to the real object begin */
+
+	/// virtual del_ptr function from base_meta realization
+	void del_ptr (void) {
+		dprintf("in del_ptr\n");
+		if (size == 1) {
+			((T*)ptr)->~T();
+		} else {
+			for (size_t i = 0; i < size; i++)
+				((T*)ptr)[i].~T();
+		}
+	}
+
+	/// virtual get_begin function from base_meta realization
+	void* get_begin (void) {
+		dprintf("in get_begin\n");
+		return reinterpret_cast <void*> (this);
+	}
+};
+
+
+/**
 * @class template smart pointer class gc_ptr
 * @brief the class describes library pointer primitive
 * @detailed template smart pointer class gc_ptr using to represent secondary pointer level and 
@@ -58,7 +102,7 @@ private:
 	* @param ptr is a pointer directly on the managed object
 	* @return pointer to the object meta (look at base_meta and class_meta in gc_new.h)
 	*/
-	void * get_base_ptr (void * ptr) {
+	void * get_base_ptr (void * ptr) const {
 		dprintf("get_base_ptr\n");
 		if (is_composite_pointer(ptr)) {
 			return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
@@ -201,7 +245,7 @@ public:
 	T& operator* () const					{	return * get_ptr(ptr);									}
 	T* operator->() const {
 		T *p = get_ptr(ptr);
-		register_dereferenced_root(p, sizeof(T));
+		register_dereferenced_root(p, ((meta<T>*)get_base_ptr(p))->size * sizeof(T));
 		return p;
 	}
 	operator T * () const 					{	return get_ptr(ptr);									}
