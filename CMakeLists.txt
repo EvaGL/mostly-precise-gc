@@ -34,4 +34,5 @@ endforeach()
 
 add_custom_target(tests
     DEPENDS gc_inside_method
-            binary_tree_sort)
+            binary_tree_sort
+            concurrency)

@@ -14,7 +14,8 @@ set(precisegc_LIB_SRCS
     taginfo.cpp
     taginfo.h
     debug_print.h
-    deref_roots.cpp)
+    deref_roots.cpp
+    threading.cpp)
 
 add_library(precisegc SHARED ${precisegc_LIB_SRCS})
 
@@ -23,8 +24,13 @@ find_path(MSMALLOC_PATH msmalloc.h)
 include_directories(${MSMALLOC_PATH})
 target_link_libraries (precisegc ${MSMALLOC_LIB})
 
+find_library(PTHREAD_LIB pthread REQUIRED)
+find_path(PTHREAD_PATH pthread.h)
+include_directories(${PTHREAD_PATH})
+target_link_libraries(precisegc ${PTHREAD_LIB})
+
 set_target_properties(precisegc PROPERTIES VERSION 1.0.0 SOVERSION 1)
 install(TARGETS precisegc
     LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX})
 
-install(FILES libprecisegc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h debug_print.h deref_roots.h DESTINATION include/libprecisegc)
+install(FILES libprecisegc.h gc_new.h gc_ptr.h go.h meta_information.h stack.h taginfo.h debug_print.h deref_roots.h threading.h DESTINATION include/libprecisegc)
