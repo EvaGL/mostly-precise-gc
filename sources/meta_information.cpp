@@ -3,7 +3,7 @@
 #include <assert.h>
 #include "debug_print.h"
 
-MetaInformation * classMeta = NULL;
+thread_local MetaInformation * classMeta = NULL;
 
 void * contains (MetaInformation * meta, const void * name) {
 	dprintf("MetaInformation: contains: begin\n");

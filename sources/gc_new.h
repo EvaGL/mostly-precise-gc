@@ -17,13 +17,13 @@
 #include "gc_ptr.h"
 #include "debug_print.h"
 
-extern std::vector <size_t> offsets;
-extern bool new_active;
-extern bool no_active;
-extern size_t counter;
-extern MetaInformation * classMeta;
-extern int nesting_level;
-extern size_t current_pointer_to_object;
+extern thread_local std::vector <size_t> offsets;
+extern thread_local bool new_active;
+extern thread_local bool no_active;
+extern thread_local size_t counter;
+extern thread_local MetaInformation * classMeta;
+extern thread_local int nesting_level;
+extern thread_local size_t current_pointer_to_object;
 
 /**
 * @function hasOffsets

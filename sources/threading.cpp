@@ -7,6 +7,8 @@
 #include "threading.h"
 
 pthread_mutex_t gc_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t gc_is_finished = PTHREAD_COND_INITIALIZER;
+pthread_cond_t safepoint_reached = PTHREAD_COND_INITIALIZER;
 thread_handler* gc_thread;
 size_t threads = 1;
 
@@ -34,6 +36,7 @@ void* start_routine(void* hand) {
      printf("Starting thread %d\n", pthread_self());
      thread_handler* handler = (thread_handler*) hand;
      handler->stack = StackMap::getInstance();
+     handler->deref_roots = deref_roots;
      handler->thread = pthread_self();
      handler->flags = 0;
      pthread_mutex_lock(&gc_mutex);
@@ -68,17 +71,22 @@ int thread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*routine
 void thread_join(pthread_t thread, void** thread_return) {
      pthread_t curr_thread = pthread_self();
      pthread_mutex_lock(&gc_mutex);
-     thread_handler* curr = first_thread;
-     while (!pthread_equal(curr->thread, curr_thread)) {
-          curr = curr->next;
-     }
-     enter_safepoint(curr);
-     pthread_mutex_unlock(&gc_mutex);
+          thread_handler* curr = first_thread;
+          while (!pthread_equal(curr->thread, curr_thread)) {
+               curr = curr->next;
+          }
+          enter_safepoint(curr);
+          if (gc_thread) {
+               pthread_mutex_unlock(&gc_mutex);
+               pthread_cond_signal(&safepoint_reached);
+          } else {
+               pthread_mutex_unlock(&gc_mutex);
+          }
 
      pthread_join(thread, thread_return);
 
      pthread_mutex_lock(&gc_mutex);
-     exit_safepoint(curr);
+          exit_safepoint(curr);
      pthread_mutex_unlock(&gc_mutex);
 }
 
@@ -90,4 +98,20 @@ void thread_exit(void** retval) {
 void thread_cancel(pthread_t thread) {
      remove_thread(thread);
      pthread_cancel(thread);
+}
+
+thread_handler* get_thread_handler(pthread_t thread) {
+     thread_handler* curr = first_thread;
+     while (!pthread_equal(curr->thread, thread)) {
+          curr = curr->next;
+     }
+     return curr;
+}
+
+void wait_for_gc(thread_handler* curr) {
+     pthread_cond_wait(&gc_is_finished, &gc_mutex);
+
+     pthread_mutex_lock(&gc_mutex);
+          exit_safepoint(curr);
+     pthread_mutex_unlock(&gc_mutex);
 }

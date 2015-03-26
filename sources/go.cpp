@@ -6,14 +6,9 @@
 
 #include "taginfo.h"
 #include "gc_new.h"
-#include "stack.h"
 #include "fake_roots.h"
-#include <stdint.h>
-#include <execinfo.h>
-#include "go.h"
-#include "deref_roots.h"
-
-extern int nesting_level;
+#include "threading.h"
+extern thread_local int nesting_level;
 
 #ifdef DEBUGE_MODE
 	size_t live_object_count = 0;
@@ -234,7 +229,21 @@ int gc () {
 		return 1;
 	}
 	dprintf("gc: mark_and_sweep\n");
-	mark_and_sweep();
+	pthread_mutex_lock(&gc_mutex);
+		thread_handler* handler = get_thread_handler(pthread_self());
+		enter_safepoint(handler);
+		handler->stack_top = __builtin_frame_address(0);
+		if (!gc_thread) {
+			gc_thread = handler;
+			pthread_mutex_unlock(&gc_mutex);
+			mark_and_sweep();
+			gc_thread = nullptr;
+			exit_safepoint(handler);
+			pthread_cond_broadcast(&gc_is_finished);
+		} else {
+			pthread_cond_signal(&safepoint_reached);
+			wait_for_gc();
+		}
 	return 0;
 }
 
@@ -271,15 +280,14 @@ void gc_delete (void * chunk) {
 
 extern void* __libc_stack_end;
 
-void mark_stack() {
-	void* stack_top = __builtin_frame_address(0);
+void mark_stack(thread_handler* thread) {
+	// TODO: get from attrs
 	void * stack_bottom = __libc_stack_end;
-	void** curr = (void**) stack_top;
-	dprintf("top - %p bottom - %p\n", stack_top, stack_bottom);
+	void** curr = (void**) thread->stack_top;
 	while (curr <= stack_bottom) {
 		if (is_heap_pointer(*curr)) {
 			dprintf("possible heap pointer: %p\n", *curr);
-			mark_dereferenced_root(*curr);
+			mark_dereferenced_root(*curr, thread->deref_roots);
 		}
 		curr++;
 	}
@@ -292,8 +300,15 @@ void mark_stack() {
 void mark_and_sweep () {
 	dprintf("go.cpp: mark_and_sweep\n");
 	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
+	thread_handler* handler = first_thread;
+	while (handler) {
+		while (!thread_in_safepoint(handler)) {
+			pthread_cond_wait(&safepoint_reached, &gc_mutex);
+			pthread_mutex_lock(&gc_mutex);
+		}
+		handler = handler->next;
+	}
 	mark_fake_roots();
-	mark_stack();
 
 #ifdef DEBUGE_MODE
 	live_object_count = 0;
@@ -301,35 +316,43 @@ void mark_and_sweep () {
 	int over_count = 0;
 #endif
 	dprintf("roots: ");
-
-	// iterate root stack and call traversing function go
-	StackMap * stack_ptr = StackMap::getInstance();
-	bool stack_overflow = false;
-	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
-		stack_overflow |= go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-	#ifdef DEBUGE_MODE
+	handler = first_thread;
+	while (handler) {
+		// iterate root stack and call traversing function go
+		mark_stack(handler);
+		StackMap *stack_ptr = handler->stack;
+		bool stack_overflow = false;
+		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
+			stack_overflow |= go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+#ifdef DEBUGE_MODE
 		i++;
 	#endif
-		dprintf("root %p ", get_next_obj(*root));
-	}
+			dprintf("root %p ", get_next_obj(*root));
+		}
 
-#ifdef DEBUGE_MODE	
+#ifdef DEBUGE_MODE
 	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
 #endif
-	while (stack_overflow) {
-		dprintf("mark_after_overflow\n");
-		stack_overflow = mark_after_overflow();
-	#ifdef DEBUGE_MODE
+		while (stack_overflow) {
+			dprintf("mark_after_overflow\n");
+			stack_overflow = mark_after_overflow();
+#ifdef DEBUGE_MODE
 		over_count++;
 	#endif
-	}
+		}
 #ifdef DEBUGE_MODE
 	printf("over_count = %i\n", over_count);
 #endif
+		handler = handler->next;
+	}
 
 	// call sweep function (look at msmalloc)
 	dprintf("call sweep\n");
 	sweep();
-	sweep_dereferenced_roots();
+	handler = first_thread;
+	while (handler) {
+		sweep_dereferenced_roots(handler);
+		handler = handler->next;
+	}
 	printf("after: "); printDlMallocInfo(); fflush(stdout);
 }
