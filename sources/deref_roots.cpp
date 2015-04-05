@@ -1,12 +1,12 @@
 #include "deref_roots.h"
 #include "go.h"
+#include "threading.h"
 #include <assert.h>
-#include <msmalloc.h>
 #include <sys/mman.h>
 
 #define deref_mark(h) (h->p |= 1)
 #define deref_unmark(h) (h->p &= ~1)
-#define deref_is_marked(h) (h->p & 1)
+#define deref_is_marked(h) (h->p & 1 != 0)
 #define plain_pointer(h) ((void*)(h->p & ~1))
 #define contains(h, p) (plain_pointer(h) <= p && p <= h->end)
 
@@ -22,6 +22,7 @@ static thread_local bool init = false;
 static thread_local root_handler* free_list = nullptr;
 
 void register_dereferenced_root(void* root, size_t size) {
+    safepoint();
     if (!init) {
         for (size_t i = 0; i < N; ++i) {
             roots[i] = nullptr;
@@ -29,7 +30,11 @@ void register_dereferenced_root(void* root, size_t size) {
         init = true;
     }
 
-    size_t hash = ((size_t)root >> 2) % N;
+    if(!root) {
+        return;
+    }
+
+    size_t hash = ((size_t)root >> 3) % N;
     root_handler* curr = roots[hash];
     while (curr) {
         if (plain_pointer(curr) == root) {
@@ -41,7 +46,7 @@ void register_dereferenced_root(void* root, size_t size) {
         void* space = mmap(nullptr, 4096 * sizeof(root_handler), PROT_READ | PROT_WRITE,
             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         assert(space != MAP_FAILED);
-        void* space_end = ((root_handler*) space) + 4096;
+        void* space_end = space + 4096 * sizeof(root_handler);
         for (root_handler* curr = (root_handler*) space; curr < space_end; ++curr) {
             curr->next = free_list;
             free_list = curr;
@@ -51,13 +56,13 @@ void register_dereferenced_root(void* root, size_t size) {
     free_list = free_list->next;
     data->next = roots[hash];
     data->p = (size_t) root;
-    data->end = (char*)root + size;
+    data->end = ((char*)root) + size;
     roots[hash] = data;
 }
 
 void mark_dereferenced_root(void* root, void* h) {
     root_handler** hashtable = (root_handler**) h;
-    size_t hash = ((size_t)root >> 2) % N;
+    size_t hash = ((size_t)root >> 3) % N;
     root_handler* curr = hashtable[hash];
     while (curr) {
         if (contains(curr, root)) {
@@ -73,7 +78,6 @@ void mark_dereferenced_root(void* root, void* h) {
 
 void sweep_dereferenced_roots(void* h) {
     root_handler** hashtable = (root_handler**) h;
-    size_t count = 0;
     for (size_t i = 0; i < N; ++i) {
         root_handler *curr = hashtable[i];
         root_handler *prev = nullptr;
@@ -88,7 +92,6 @@ void sweep_dereferenced_roots(void* h) {
                 curr->next = free_list;
                 free_list = curr;
                 curr = tmp;
-                count++;
             } else {
                 deref_unmark(curr);
                 prev = curr;

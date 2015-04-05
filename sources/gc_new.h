@@ -16,6 +16,7 @@
 #include <msmalloc.h>
 #include "gc_ptr.h"
 #include "debug_print.h"
+#include "threading.h"
 
 extern thread_local std::vector <size_t> offsets;
 extern thread_local bool new_active;
@@ -101,6 +102,9 @@ bool hasOffsets (void) {
 template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	assert(count >= 0);
+	if (nesting_level == 0) {
+		safepoint();
+	}
 	dprintf("in gc_new: \n");
 	void * type_name_pointer = (void*)typeid(T).name();
 	// get pointer to class meta or NULL if it is no meta for this class

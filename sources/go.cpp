@@ -235,15 +235,18 @@ int gc () {
 		handler->stack_top = __builtin_frame_address(0);
 		if (!gc_thread) {
 			gc_thread = handler;
-			pthread_mutex_unlock(&gc_mutex);
+			dprintf("thread %d is garbage collector\n", handler->thread);
 			mark_and_sweep();
 			gc_thread = nullptr;
 			exit_safepoint(handler);
 			pthread_cond_broadcast(&gc_is_finished);
 		} else {
+			dprintf("Thread %d reached safepoint\n", handler->thread);\
 			pthread_cond_signal(&safepoint_reached);
-			wait_for_gc();
+			pthread_cond_wait(&gc_is_finished, &gc_mutex);
+			exit_safepoint(handler);
 		}
+	pthread_mutex_unlock(&gc_mutex);
 	return 0;
 }
 
@@ -281,9 +284,12 @@ void gc_delete (void * chunk) {
 extern void* __libc_stack_end;
 
 void mark_stack(thread_handler* thread) {
-	// TODO: get from attrs
-	void * stack_bottom = __libc_stack_end;
+	void * stack_bottom = thread->stack_bottom;
+	if (!stack_bottom) {
+		stack_bottom = __libc_stack_end;
+	}
 	void** curr = (void**) thread->stack_top;
+	assert(curr <= stack_bottom);
 	while (curr <= stack_bottom) {
 		if (is_heap_pointer(*curr)) {
 			dprintf("possible heap pointer: %p\n", *curr);
@@ -299,15 +305,17 @@ void mark_stack(thread_handler* thread) {
 */
 void mark_and_sweep () {
 	dprintf("go.cpp: mark_and_sweep\n");
-	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
+	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
 	thread_handler* handler = first_thread;
 	while (handler) {
 		while (!thread_in_safepoint(handler)) {
+			dprintf("Waiting thread %d to reach safepoint\n", handler->thread);
 			pthread_cond_wait(&safepoint_reached, &gc_mutex);
-			pthread_mutex_lock(&gc_mutex);
 		}
 		handler = handler->next;
 	}
+	dprintf("All in savepoint, collecting garbage\n");
+
 	mark_fake_roots();
 
 #ifdef DEBUGE_MODE
@@ -351,8 +359,8 @@ void mark_and_sweep () {
 	sweep();
 	handler = first_thread;
 	while (handler) {
-		sweep_dereferenced_roots(handler);
+		sweep_dereferenced_roots(handler->deref_roots);
 		handler = handler->next;
 	}
-	printf("after: "); printDlMallocInfo(); fflush(stdout);
+	dprintf("after: "); //printDlMallocInfo(); fflush(stdout);
 }

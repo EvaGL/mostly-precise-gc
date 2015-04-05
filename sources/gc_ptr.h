@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <msmalloc.h>
 #include "deref_roots.h"
+#include "threading.h"
 
 // #define my_malloc no_space_malloc
 // #define my_malloc space_based_malloc
@@ -103,6 +104,7 @@ private:
 	* @return pointer to the object meta (look at base_meta and class_meta in gc_new.h)
 	*/
 	void * get_base_ptr (void * ptr) const {
+		safepoint();
 		dprintf("get_base_ptr\n");
 		if (is_composite_pointer(ptr)) {
 			return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
@@ -117,6 +119,7 @@ private:
 	* @return some correctly aligned pointer (cleared from flags)
 	*/
 	T * get_ptr (void * pointer) const {
+		safepoint();
 		dprintf("T * get_ptr\n");
 		if (is_composite_pointer(pointer)) {
 			return reinterpret_cast<T *>( (((Composite_pointer *)(clear_both_flags(pointer)))->pointer));
@@ -245,7 +248,7 @@ public:
 	T& operator* () const					{	return * get_ptr(ptr);									}
 	T* operator->() const {
 		T *p = get_ptr(ptr);
-		register_dereferenced_root(p, ((meta<T>*)get_base_ptr(p))->size * sizeof(T));
+		register_dereferenced_root(p, sizeof(T));
 		return p;
 	}
 	operator T * () const 					{	return get_ptr(ptr);									}
@@ -299,8 +302,8 @@ public:
 			cp->ref_count	= 1;
 		}
 		ptr = is_stack_pointer(ptr) ? set_both_flags(cp) : set_composite_flag(cp);
+		safepoint();
 	}
-
 	/**	\fn nullify function
 		\brief nullifies current object
 	*/
@@ -312,6 +315,7 @@ public:
 			if (cp->ref_count-- == 0) free(cp);
 		}
 		ptr = 0;
+		safepoint();
 	}
 
 	/** look at gc_new.h */
