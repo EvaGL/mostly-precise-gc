@@ -9,7 +9,7 @@
 #include <cstdio>
 #include "stack.h"
 #include <stdint.h>
-#include <msmalloc.h>
+#include "malloc.h"
 #include "deref_roots.h"
 #include "threading.h"
 

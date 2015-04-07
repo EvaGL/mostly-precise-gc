@@ -15,14 +15,15 @@ set(precisegc_LIB_SRCS
     taginfo.h
     debug_print.h
     deref_roots.cpp
-    threading.cpp)
+    threading.cpp
+    malloc.cpp)
 
 add_library(precisegc SHARED ${precisegc_LIB_SRCS})
 
-find_library(MSMALLOC_LIB msmalloc REQUIRED)
-find_path(MSMALLOC_PATH msmalloc.h)
-include_directories(${MSMALLOC_PATH})
-target_link_libraries (precisegc ${MSMALLOC_LIB})
+#find_library(MSMALLOC_LIB msmalloc REQUIRED)
+#find_path(MSMALLOC_PATH msmalloc.h)
+#include_directories(${MSMALLOC_PATH})
+#target_link_libraries (precisegc ${MSMALLOC_LIB})
 
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_path(PTHREAD_PATH pthread.h)
