@@ -26,6 +26,8 @@
 #define is_composite_pointer(x)	(bool)		((uintptr_t)x & (uintptr_t)2)
 #define clear_stack_flag(x)		(void *)	((uintptr_t)x & ~(uintptr_t)1)
 #define clear_both_flags(x)		(void *)	((uintptr_t)x & ~(uintptr_t)3)
+#define get_both_flags(x)       (uintptr_t) ((uintptr_t)x & (uintptr_t)3)
+#define restore_flags(x, fl)    (void*)     ((uintptr_t)x | (uintptr_t)fl)
 
 extern thread_local std::vector <size_t> offsets;
 extern bool thread_local new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */

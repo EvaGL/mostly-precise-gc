@@ -52,6 +52,10 @@ void mark_and_sweep ();
 		* @return reverse to get_next_obj functionality
 		*/
 		void * to_get_meta_inf (void *);
+
+		void* move_ptr(void* ptr, void* value);
+
+		void fix_roots();
 #ifdef __cplusplus
 	}
 #endif

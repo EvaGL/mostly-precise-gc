@@ -13,7 +13,6 @@
 #include "meta_information.h"
 #include <vector>
 #include <assert.h>
-#include <msmalloc.h>
 #include "gc_ptr.h"
 #include "debug_print.h"
 #include "threading.h"
@@ -52,7 +51,6 @@ bool hasOffsets (void) {
 	/* allocate space */
 	void * res = my_malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
-	transfer_to_automatic_objects(res);
 	new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T();
 	*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
 	meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
@@ -122,7 +120,6 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	/* initialize object which will be store the result and allocate space */
 	void * res = my_malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));
 	dprintf("gc_new: %p\n", res);
-	transfer_to_automatic_objects(res);
 	nesting_level++;
 
 	if (clMeta != NULL) {

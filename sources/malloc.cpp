@@ -3,11 +3,13 @@
 //
 
 #include "malloc.h"
-#include <pthread.h>
-#include <unistd.h>
+#include "gc_ptr.h"
+#include "taginfo.h"
+#include "go.h"
 #include <sys/mman.h>
 #include <assert.h>
 #include <string.h>
+#include <libprecisegc/gc_ptr.h>
 
 struct block {
     size_t size;
@@ -21,8 +23,8 @@ struct page {
 };
 
 struct big_block {
-    size_t size;
     big_block* next;
+    size_t size;
     char data[0];
 };
 
@@ -47,6 +49,9 @@ static const size_t BIG_BLOCK_THRESHOLD = PAGE_SIZE - sizeof(block) - sizeof(pag
 #define set_forward_pointer(b, ptr) ((void*)b->data = ptr)
 #define next_block(b) ((block*)(((char*)b) + sizeof(block) + b->size))
 #define page_is_full(p) ((char*)(p->free_block) == ((char*)p) + PAGE_SIZE)
+
+#define get_block(p) ((block*)((char*)p - sizeof(block)))
+#define get_block_from_big_block(bb) (get_block(bb->data))
 
 page* first_page;
 big_block* first_big_block;
@@ -78,7 +83,7 @@ block* malloc_internal(size_t s, page** page_list) {
         block->size = s;
         block->next = first_big_block;
         first_big_block = block;
-        return block->data;
+        return get_block_from_big_block(block);
     }
 
     size_t s_and_block = s + sizeof(block);
@@ -113,12 +118,24 @@ void* malloc(size_t s) {
     return res;
 }
 
+void fix_ptr(void *p) {
+    if (p) {
+        void *next = get_next_obj(p);
+        if (next != nullptr) {
+            block *moved_block = get_block(next);
+            if (block_is_marked(moved_block)) {
+                *(void **) p = move_ptr(p, forward_pointer(moved_block));
+            }
+        }
+    }
+}
+
 void sweep() {
-    big_block* big = first_big_block;
-    big_block* prev = nullptr;
+    big_block *big = first_big_block;
+    big_block *prev = nullptr;
     while (big != nullptr) {
-        if (!block_is_marked(big) && !block_is_marked(big)) {
-            big_block* next = big->next;
+        if (!block_is_marked(big) && !block_is_pinned(big)) {
+            big_block *next = big->next;
             if (prev == nullptr) {
                 first_big_block = next;
             } else {
@@ -134,11 +151,11 @@ void sweep() {
         }
     }
 
-    page* alive_pages = nullptr;
-    page* page = first_page;
-    page* prev_page = nullptr;
+    page *alive_pages = nullptr;
+    page *page = first_page;
+    page *prev_page = nullptr;
     while (page != nullptr) {
-        block* b = page->first_block;
+        block *b = page->first_block;
         while (b != page->free_block) {
             if (block_is_pinned(b)) {
                 if (prev_page == nullptr) {
@@ -160,12 +177,12 @@ void sweep() {
 
     page = first_page;
     while (page != nullptr) {
-        block* b = page->first_block;
+        block *b = page->first_block;
         while (b != page->free_block) {
             assert(!block_is_pinned(b));
             if (block_is_marked(b)) {
                 size_t s = block_size(b);
-                block* block_to_copy = malloc_internal(s, &alive_pages);
+                block *block_to_copy = malloc_internal(s, &alive_pages);
                 assert(block_to_copy != nullptr); //TODO: THINK!!
                 memcpy(block_to_copy->data, b->data, s);
                 set_forward_pointer(b, block_to_copy->data);
@@ -174,4 +191,52 @@ void sweep() {
         }
         page = page->next;
     }
+
+    page = alive_pages;
+    while (page != nullptr) {
+        block *b = page->first_block;
+        while (b != page->free_block) {
+            unmark_block(b);
+            unpin_block(b);
+            void *data = b->data + sizeof(base_meta);
+            base_meta *meta = (base_meta *) b->data;
+            BLOCK_TAG *tag = (BLOCK_TAG *) meta->shell;
+            size_t sizeType = 0;
+            size_t sizeArray = 0;
+            void* offsets_base = nullptr;
+            switch (tag->model) {
+                case 1:
+                    sizeArray = 1;
+                    offsets_base = meta;
+                    break;
+                case 3:
+                    sizeType = tag->num_of_el;
+                    sizeArray = tag->size;
+                    offsets_base = tag->ptr;
+                    break;
+                default:
+                    break;
+            }
+
+            size_t n = *(size_t *) (offsets_base + sizeof(BLOCK_TAG));
+            for (size_t t = 0; t < sizeArray; t++, data = (void *) ((char *) data + sizeType)) {
+                void *this_offsets = offsets_base + sizeof(BLOCK_TAG) + sizeof(size_t);
+                for (size_t i = 0; i < n; i++) {
+                    fix_ptr((char *) data + (*((POINTER_DESCR *) this_offsets)).offset);
+                    this_offsets = (char *) this_offsets + sizeof(POINTER_DESCR);
+                }
+            }
+            b = next_block(b);
+        }
+        page = page->next;
+    }
+
+    fix_roots();
+    page = first_page;
+    while (page != nullptr) {
+        page* next = page->next;
+        munmap(page, PAGE_SIZE);
+        page = next;
+    }
+    first_page = alive_pages;
 }

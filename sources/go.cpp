@@ -30,6 +30,15 @@ void * get_ptr (void * ptr) {
 	}
 }
 
+void * move_ptr(void* ptr, void* value) {
+	if (is_composite_pointer(ptr)) {
+		((Composite_pointer*)clear_both_flags(ptr))->base = value;
+		return ptr;
+	} else {
+		return restore_flags(value, get_both_flags(ptr));
+	}
+}
+
 /**
 * @function get_next_obj
 * @return pointer (void *) on the object on that root or gc_ptr "v" points;
@@ -363,4 +372,15 @@ void mark_and_sweep () {
 		handler = handler->next;
 	}
 	dprintf("after: "); //printDlMallocInfo(); fflush(stdout);
+}
+
+void fix_roots() {
+	thread_handler *handler = first_thread;
+	while (handler) {
+		StackMap *stack_ptr = handler->stack;
+		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
+			fix_ptr(*root);
+		}
+		handler = handler->next;
+	}
 }
