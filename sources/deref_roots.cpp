@@ -1,6 +1,7 @@
 #include "deref_roots.h"
 #include "go.h"
 #include "threading.h"
+#include "malloc.h"
 #include <assert.h>
 #include <sys/mman.h>
 
@@ -30,7 +31,7 @@ void register_dereferenced_root(void* root, size_t size) {
         init = true;
     }
 
-    if(!root) {
+    if(!root || ((size_t) root) % 2 != 0) {
         return;
     }
 
@@ -68,7 +69,7 @@ void mark_dereferenced_root(void* root, void* h) {
         if (contains(curr, root)) {
             if (!deref_is_marked(curr)) {
                 deref_mark(curr);
-                go(plain_pointer(curr));
+                go(plain_pointer(curr), true);
             }
             return;
         }

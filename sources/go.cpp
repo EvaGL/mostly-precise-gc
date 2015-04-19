@@ -73,43 +73,22 @@ void * to_get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 *	then overflow case will be
 */
 #define max_stack_size 10000
-struct Stack {
-	struct StackEl {
-		void * pointer;
-		StackEl * prev;
-	};
-	StackEl * top;
-	int size;
-
+void* stack[max_stack_size];
+size_t stack_size;
 	int push (void * new_element) {
-		StackEl * st = (StackEl *)malloc(sizeof(StackEl));
-		if (!st || size >= max_stack_size) {
-			// fails to allocate memory
+		if (stack_size >= max_stack_size) {
 			return 1;
 		}
-		st->prev = top;
-		st->pointer = new_element;
-		top = st;
-		size++;
+		stack[stack_size++] = new_element;
 		return 0;
 	}
 
 	void * pop () {
-		if (!top) {
+		if (stack_size == 0) {
 			return NULL;
 		}
-		void * res = top->pointer;
-		StackEl * st = top;
-		top = top->prev;
-		// free(st);
-		transfer_to_automatic_objects(st);
-		return res;
+		return stack[--stack_size];
 	}
-
-	bool is_empty () {
-		return top == NULL;
-	}
-};
 
 /**
 * @function go
@@ -120,21 +99,24 @@ struct Stack {
 * @return nothing
 * @param v --- is a current traversing object (in first call --- roots and fake roots)
 */
-int go (void * pointer) {
+int go (void * pointer, bool pin_root) {
 	dprintf("\nin go %p\n", pointer);
 
 	if (!pointer || !is_heap_pointer(pointer)) {
 		dprintf("\nreturn! --- NULL or NON-heap pointer %p\n", pointer);
 		return 0;
 	}
-	Stack * vertices = (Stack *)malloc(sizeof(Stack));
-	vertices->top = NULL;
-	vertices->size = 0;
-	vertices->push(pointer);
+	if (pin_root) {
+		pin(get_meta_inf(pointer));
+	}
+
+	stack_size = 1;
+	stack[0] = pointer;
+
 	bool stack_overflow = false;
 
-	while (!vertices->is_empty()) {
-		void * v = vertices->pop();
+	while (stack_size != 0) {
+		void * v = pop();
 		if (v == NULL || !is_heap_pointer(v)) {
 			dprintf(" %p is not a heap pointer\n ", v);
 			continue;
@@ -166,7 +148,7 @@ int go (void * pointer) {
 								if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
 									dprintf("go : tag 1 : push : %p %i %i\n", next_vertice, get_mark(next_vertice),
 										get_mark(get_meta_inf(next_vertice)));
-									if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+									if (push(next_vertice)) { //i.e. fails to allocate memory
 										dprintf("go : tag 1 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
 											get_mark(next_vertice));
 										stack_overflow = true;
@@ -194,7 +176,7 @@ int go (void * pointer) {
 								if (p) {
 									void * next_vertice = get_next_obj(p);
 									if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
-										if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+										if (push(next_vertice)) { //i.e. fails to allocate memory
 											dprintf("go : tag 3 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
 												get_mark(next_vertice));
 											stack_overflow = true;
@@ -223,7 +205,6 @@ int go (void * pointer) {
 		}
 	}
 	// free(vertices);
-	transfer_to_automatic_objects(vertices);
 	return stack_overflow;
 }
 

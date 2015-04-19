@@ -6,7 +6,6 @@
 *****************************************************************************************/
 
 #pragma once
-#include <cstdio>
 #include "stack.h"
 #include <stdint.h>
 #include "malloc.h"
@@ -16,7 +15,7 @@
 // #define my_malloc no_space_malloc
 // #define my_malloc space_based_malloc
 // #define my_malloc timed_malloc
-#define my_malloc stupid_malloc
+#define my_malloc gcmalloc
 // #define my_malloc malloc
 
 #define set_stack_flag(x)		(void *)	((uintptr_t)x | (uintptr_t)1)

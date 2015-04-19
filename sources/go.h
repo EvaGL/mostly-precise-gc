@@ -39,7 +39,7 @@ void mark_and_sweep ();
 		* @return nothing
 		* @param v --- is a current traversing object (in first call --- roots and fake roots)
 		*/
-		int go (void *);
+		int go (void * pointer, bool pin_root = false);
 		/**
 		* @function get_next_obj
 		* @return pointer (void *) on the object on that root or gc_ptr "v" points;
