@@ -177,9 +177,9 @@ void fix_ptr(void *p) {
     if (p) {
         void *next = get_next_obj(p);
         if (next != nullptr) {
-            block *moved_block = get_block(next);
+            block *moved_block = get_block((char*)next - sizeof(base_meta));
             if (block_is_marked(moved_block)) {
-                //*(void **) p = move_ptr(p, forward_pointer(moved_block)); FIXME: !!!
+                *(void **) p = move_ptr(p, forward_pointer(moved_block) + sizeof(base_meta));
             }
         }
     }
