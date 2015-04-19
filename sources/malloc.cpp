@@ -33,8 +33,9 @@ static const size_t BIG_BLOCK_THRESHOLD = PAGE_SIZE - sizeof(block) - sizeof(pag
 
 #define PIN_FLAG 1
 #define MARK_FLAG 2
+#define COPY_FLAG 4
 
-#define block_size(b) (b->size & (~PIN_FLAG) & (~MARK_FLAG))
+#define block_size(b) (b->size & (~PIN_FLAG) & (~MARK_FLAG) & (~COPY_FLAG))
 
 #define pin_block(b) (b->size |= PIN_FLAG)
 #define unpin_block(b) (b->size &= ~PIN_FLAG)
@@ -44,8 +45,11 @@ static const size_t BIG_BLOCK_THRESHOLD = PAGE_SIZE - sizeof(block) - sizeof(pag
 #define unmark_block(b) (b->size &= ~MARK_FLAG)
 #define block_is_marked(b) (b->size & MARK_FLAG)
 
-#define forward_pointer(b) ((void*) b->data)
-#define set_forward_pointer(b, ptr) (((void**)b->data)[0] = ptr)
+#define set_copy_flag(b) (b->size |= COPY_FLAG)
+#define block_was_copied(b) (b->size & COPY_FLAG)
+
+#define forward_pointer(b) (*((void**) b->data))
+#define set_forward_pointer(b, ptr) (*((void**)b->data) = ptr)
 #define next_block(b) ((block*)(((char*)b) + sizeof(block) + block_size(b)))
 #define page_is_full(p) ((char*)(p->free_block) == ((char*)p) + PAGE_SIZE)
 
@@ -177,9 +181,11 @@ void fix_ptr(void *p) {
     if (p) {
         void *next = get_next_obj(p);
         if (next != nullptr) {
-            block *moved_block = get_block((char*)next - sizeof(base_meta));
-            if (block_is_marked(moved_block)) {
-                *(void **) p = move_ptr(p, forward_pointer(moved_block) + sizeof(base_meta));
+            printf("next: %p\n", next);
+            size_t offset = sizeof(base_meta) + 2 * sizeof(void*);
+            block *moved_block = get_block((char*)next - offset);
+            if (block_was_copied(moved_block)) {
+                *(void **) p = move_ptr(*(void**)p, forward_pointer(moved_block) + offset);
             }
         }
     }
@@ -237,6 +243,7 @@ void sweep() {
         while (b != curr_page->free_block) {
             assert(!block_is_pinned(b));
             if (block_is_marked(b)) {
+                set_copy_flag(b);
                 size_t s = block_size(b);
                 block *block_to_copy = malloc_internal(s, &alive_pages);
                 assert(block_to_copy != nullptr); //TODO: THINK!!
