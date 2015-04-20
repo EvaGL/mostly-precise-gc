@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "malloc.h"
+
 /**
 * @function mark_and_sweep
 * @detailed implements mark and sweep stop the world algorithm
@@ -52,6 +54,8 @@ void mark_and_sweep ();
 		* @return reverse to get_next_obj functionality
 		*/
 		void * to_get_meta_inf (void *);
+
+		base_meta* get_meta_inf(void*);
 
 		void* move_ptr(void* ptr, void* value);
 

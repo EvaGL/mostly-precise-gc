@@ -45,20 +45,6 @@ struct Composite_pointer {
 };
 
 /**
-* @class base_meta
-* @brief object meta base class
-* @detailed realizes base object meta class (like interface for eatch object meta)
-*/
-class base_meta {
-public:
-	void *shell;	/**< pointer on the box(meta info struct for storing offsets) of object */
-	void * ptrptr;	/**< pointer to the real object begin */
-	size_t size;	/**< size of object */
-	virtual void del_ptr () = 0;	/**< delete meta-ptr */
-	virtual void* get_begin () = 0;	/**< get begin of object (pointer on meta)*/
-};
-
-/**
 * @class meta
 * @brief template class; realizes specific meta for eatch object;
 * @detailed it creates in gc_new and it it stored directly with (right before) the
@@ -67,16 +53,15 @@ public:
 template <class T>
 class meta : public base_meta {
 public:
-	T* ptr;	/**< "typed" pointer to the real object begin */
-
 	/// virtual del_ptr function from base_meta realization
 	void del_ptr (void) {
+		void* ptr = to_get_meta_inf(this);
 		dprintf("in del_ptr\n");
 		if (size == 1) {
-			((T*)ptr)->~T();
+			((T*) ptr)->~T();
 		} else {
 			for (size_t i = 0; i < size; i++)
-				((T*)ptr)[i].~T();
+				((T*) ptr)[i].~T();
 		}
 	}
 

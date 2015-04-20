@@ -22,6 +22,6 @@ int main() {
     gc();
     assert(ptr != a.get());
     assert(value == a->value);
-    assert(b->a.get() == ptr);
+    assert(b->a.get() == a.get());
     return 0;
 }

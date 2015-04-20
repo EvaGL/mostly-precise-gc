@@ -62,11 +62,11 @@ void * get_next_obj(void * v) {  /* get the next object*/
 * TODO: it can throw exception in "v"'s incorrect pointer case
 */
 inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
-	return reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *))));
+	return (base_meta*)v - 1;
 }
 
 void * to_get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
-	return reinterpret_cast <void *> (reinterpret_cast <base_meta*>(v) + 1);
+	return reinterpret_cast <void *> ((base_meta*)(v) + 1);
 }
 
 /**	ifs stack frous up to max_stack_size

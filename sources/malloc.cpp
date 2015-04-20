@@ -123,16 +123,6 @@ inline page* request_new_page() {
     return new_page;
 }
 
-class base_meta {
-public:
-    void *shell;	/**< pointer on the box(meta info struct for storing offsets) of object */
-    void * ptrptr;	/**< pointer to the real object begin */
-    size_t size;	/**< size of object */
-    virtual void del_ptr () = 0;	/**< delete meta-ptr */
-    virtual void* get_begin () = 0;	/**< get begin of object (pointer on meta)*/
-};
-
-
 block* malloc_internal(size_t s, page** page_list) {
     if (s > BIG_BLOCK_THRESHOLD) {
         big_block* b = (big_block *) morecore(s + sizeof(big_block));
@@ -182,10 +172,13 @@ void fix_ptr(void *p) {
         void *next = get_next_obj(p);
         if (next != nullptr) {
             printf("next: %p\n", next);
-            size_t offset = sizeof(base_meta) + 2 * sizeof(void*);
-            block *moved_block = get_block((char*)next - offset);
+            void* data_begin = get_meta_inf(next);
+            block *moved_block = get_block(data_begin);
             if (block_was_copied(moved_block)) {
-                *(void **) p = move_ptr(*(void**)p, forward_pointer(moved_block) + offset);
+                base_meta* moved_meta = (base_meta *) forward_pointer(moved_block);
+                printf("before: %p\n", *(void**)p);
+                *(void **) p = move_ptr(*(void**)p, to_get_meta_inf(moved_meta));
+                printf("after: %p\n", *(void**)p);
             }
         }
     }
