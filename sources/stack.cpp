@@ -39,7 +39,7 @@ StackMap * StackMap::getInstance(
 		int free_page_parameter1, int add_page_parameter1,
 		size_t length1
 		) {
-	static StackMap instance(length1, free_page_parameter1, add_page_parameter1);
+	static thread_local StackMap instance(length1, free_page_parameter1, add_page_parameter1);
 	return &instance;
 	// std::lock_guard<std::mutex> lock (mutex);
 	// if (!StackMap::instance) {

@@ -6,15 +6,16 @@
 *****************************************************************************************/
 
 #pragma once
-#include <cstdio>
 #include "stack.h"
 #include <stdint.h>
-#include <msmalloc.h>
+#include "malloc.h"
+#include "deref_roots.h"
+#include "threading.h"
 
 // #define my_malloc no_space_malloc
 // #define my_malloc space_based_malloc
 // #define my_malloc timed_malloc
-#define my_malloc stupid_malloc
+#define my_malloc gcmalloc
 // #define my_malloc malloc
 
 #define set_stack_flag(x)		(void *)	((uintptr_t)x | (uintptr_t)1)
@@ -24,11 +25,13 @@
 #define is_composite_pointer(x)	(bool)		((uintptr_t)x & (uintptr_t)2)
 #define clear_stack_flag(x)		(void *)	((uintptr_t)x & ~(uintptr_t)1)
 #define clear_both_flags(x)		(void *)	((uintptr_t)x & ~(uintptr_t)3)
+#define get_both_flags(x)       (uintptr_t) ((uintptr_t)x & (uintptr_t)3)
+#define restore_flags(x, fl)    (void*)     ((uintptr_t)x | (uintptr_t)fl)
 
-extern std::vector <size_t> offsets;
-extern bool new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
-extern bool no_active;	/**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
-extern size_t current_pointer_to_object;	/**< used in offsets calculation */
+extern thread_local std::vector <size_t> offsets;
+extern bool thread_local new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
+extern bool thread_local no_active;	/**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
+extern size_t thread_local current_pointer_to_object;	/**< used in offsets calculation */
 
 /**
 * @class Composite_pointer
@@ -40,6 +43,35 @@ struct Composite_pointer {
 	void * base;	//! pointer to the comprehensive object begin
 	size_t ref_count;	//! referense counter
 };
+
+/**
+* @class meta
+* @brief template class; realizes specific meta for eatch object;
+* @detailed it creates in gc_new and it it stored directly with (right before) the
+	allocated object.
+*/
+template <class T>
+class meta : public base_meta {
+public:
+	/// virtual del_ptr function from base_meta realization
+	void del_ptr (void) {
+		void* ptr = to_get_meta_inf(this);
+		dprintf("in del_ptr\n");
+		if (size == 1) {
+			((T*) ptr)->~T();
+		} else {
+			for (size_t i = 0; i < size; i++)
+				((T*) ptr)[i].~T();
+		}
+	}
+
+	/// virtual get_begin function from base_meta realization
+	void* get_begin (void) {
+		dprintf("in get_begin\n");
+		return reinterpret_cast <void*> (this);
+	}
+};
+
 
 /**
 * @class template smart pointer class gc_ptr
@@ -57,7 +89,8 @@ private:
 	* @param ptr is a pointer directly on the managed object
 	* @return pointer to the object meta (look at base_meta and class_meta in gc_new.h)
 	*/
-	void * get_base_ptr (void * ptr) {
+	void * get_base_ptr (void * ptr) const {
+		safepoint();
 		dprintf("get_base_ptr\n");
 		if (is_composite_pointer(ptr)) {
 			return ((Composite_pointer *)(clear_both_flags(ptr)))->base;
@@ -72,6 +105,7 @@ private:
 	* @return some correctly aligned pointer (cleared from flags)
 	*/
 	T * get_ptr (void * pointer) const {
+		safepoint();
 		dprintf("T * get_ptr\n");
 		if (is_composite_pointer(pointer)) {
 			return reinterpret_cast<T *>( (((Composite_pointer *)(clear_both_flags(pointer)))->pointer));
@@ -198,7 +232,11 @@ public:
 
 	/* reloaded operators for gc_ptr's objects */
 	T& operator* () const					{	return * get_ptr(ptr);									}
-	T * operator-> () const 				{	return get_ptr(ptr);									}
+	T* operator->() const {
+		T *p = get_ptr(ptr);
+		register_dereferenced_root(p, sizeof(T));
+		return p;
+	}
 	operator T * () const 					{	return get_ptr(ptr);									}
 	T * get () const 						{	return get_ptr(ptr);									}
 	T& operator[] (size_t index) const 		{	return (get_ptr(ptr))[index];							}
@@ -250,8 +288,8 @@ public:
 			cp->ref_count	= 1;
 		}
 		ptr = is_stack_pointer(ptr) ? set_both_flags(cp) : set_composite_flag(cp);
+		safepoint();
 	}
-
 	/**	\fn nullify function
 		\brief nullifies current object
 	*/
@@ -263,6 +301,7 @@ public:
 			if (cp->ref_count-- == 0) free(cp);
 		}
 		ptr = 0;
+		safepoint();
 	}
 
 	/** look at gc_new.h */

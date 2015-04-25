@@ -13,60 +13,17 @@
 #include "meta_information.h"
 #include <vector>
 #include <assert.h>
-#include <msmalloc.h>
 #include "gc_ptr.h"
 #include "debug_print.h"
+#include "threading.h"
 
-extern std::vector <size_t> offsets;
-extern bool new_active;
-extern bool no_active;
-extern size_t counter;
-extern MetaInformation * classMeta;
-extern int nesting_level;
-extern size_t current_pointer_to_object;
-
-/**
-* @class base_meta
-* @brief object meta base class
-* @detailed realizes base object meta class (like interface for eatch object meta)
-*/
-class base_meta {
-public:
-	void *shell;	/**< pointer on the box(meta info struct for storing offsets) of object */
-	void * ptrptr;	/**< pointer to the real object begin */
-	size_t size;	/**< size of object */
-	virtual void del_ptr () = 0;	/**< delete meta-ptr */
-	virtual void* get_begin () = 0;	/**< get begin of object (pointer on meta)*/
-};
-
-/**
-* @class meta  
-* @brief template class; realizes specific meta for eatch object;
-* @detailed it creates in gc_new and it it stored directly with (right before) the
-	allocated object.
-*/
-template <class T>
-class meta : public base_meta {
-public:
-	T* ptr;	/**< "typed" pointer to the real object begin */
-
-	/// virtual del_ptr function from base_meta realization
-	void del_ptr (void) {
-		dprintf("in del_ptr\n");
-		if (size == 1) {
-			((T*)ptr)->~T();
-		} else {
-			for (size_t i = 0; i < size; i++)
-				((T*)ptr)[i].~T();
-		}
-	}
-
-	/// virtual get_begin function from base_meta realization
-	void* get_begin (void) {
-		dprintf("in get_begin\n");
-		return reinterpret_cast <void*> (this);
-	}
-};
+extern thread_local std::vector <size_t> offsets;
+extern thread_local bool new_active;
+extern thread_local bool no_active;
+extern thread_local size_t counter;
+extern thread_local MetaInformation * classMeta;
+extern thread_local int nesting_level;
+extern thread_local size_t current_pointer_to_object;
 
 /**
 * @function hasOffsets
@@ -94,7 +51,6 @@ bool hasOffsets (void) {
 	/* allocate space */
 	void * res = my_malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
 	current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
-	transfer_to_automatic_objects(res);
 	new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T();
 	*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
 	meta<T>* m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
@@ -144,6 +100,9 @@ bool hasOffsets (void) {
 template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	assert(count >= 0);
+	if (nesting_level == 0) {
+		safepoint();
+	}
 	dprintf("in gc_new: \n");
 	void * type_name_pointer = (void*)typeid(T).name();
 	// get pointer to class meta or NULL if it is no meta for this class
@@ -159,24 +118,21 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	/* metainformation that will be stored directly with object */
 	meta<T>* m_inf = NULL;
 	/* initialize object which will be store the result and allocate space */
-	void * res = my_malloc(sizeof(T) * count + sizeof(void*) + sizeof(meta<T>));
+	void * res = my_malloc(sizeof(T) * count + sizeof(meta<T>));
 	dprintf("gc_new: %p\n", res);
-	transfer_to_automatic_objects(res);
 	nesting_level++;
 
 	if (clMeta != NULL) {
 		dprintf("\tclMeta != NULL\n");
 		if (count == 1) {
 			dprintf("\tcount == 1\n");
-			new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
-			*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
+			new ((char *)res + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
 			m_inf = reinterpret_cast <meta<T>* > (res); /* stored pointer on meta */
 			m_inf->shell = clMeta;
 		} else {
 			dprintf("\tcount != 1\n");
 			no_active = true; // offsets wont counting yet
 			new ((char *)res + sizeof(void *) + sizeof(meta<T>)) T[count];
-			*((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
 			m_inf = reinterpret_cast <meta<T>* > (res);
 
 			no_active = true; // offsets will counting yet
@@ -227,12 +183,11 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 		temp.swap(offsets);
 		/* save current pointer to the allocating object; it uses in gc_ptr constructor to evaluate offsets size */
 		size_t old_current_pointer_to_object = current_pointer_to_object;
-		current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
+		current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(meta<T>));
 
 		if (count == 1) {
 			dprintf("\tcount == 1\n");
-			new ((char *)res + sizeof(void*) + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
-			*((size_t*)((char *)res + sizeof(meta<T>))) =  reinterpret_cast <size_t> (new (res) meta<T>);  /* initialize meta in obj */
+			new ((char *)res + sizeof(meta<T>)) T(types ... );  /* create object in allocated space, call gc_ptr constructor, get new struct offsets */
 			m_inf = reinterpret_cast <meta<T>* > (res);  /* stored pointer on meta */
 
 			if (offsets.empty()) {
@@ -247,8 +202,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 		} else {
 			dprintf("\tcount != 1\n");
 			no_active = true; // offsets wont counting yet
-			new ((char *)res + sizeof(void *) + sizeof(meta<T>)) T[count];
-			*((size_t*)((char *)res + sizeof(meta<T>))) = reinterpret_cast <size_t> (new (res) meta<T>);
+			new ((char *)res + sizeof(meta<T>)) T[count];
 			m_inf = reinterpret_cast <meta<T>* > (res);
 
 			no_active = false; // offsets will counting yet
@@ -272,8 +226,6 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	}
 	dprintf("\tgc_new: will restore global values\n");
 	m_inf->size = count; /* count of offsets */
-	m_inf->ptr = (T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)); /*set pointer on value of object(gc_ptr) */
-	m_inf->ptrptr = (void *)((char *)res + sizeof(base_meta*) + sizeof(meta<T>));
 
 	/* restore old global variable values */
 	new_active = old_new_active;
@@ -282,5 +234,5 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 
 	dprintf("\tgc_new : before remove\n");
 	/*return ptr on allocated space, begining value */
-	return gc_ptr<T>((T*)((char *)res + sizeof(base_meta*) + sizeof(meta<T>)));
+	return gc_ptr<T>((T*)((char *)res + sizeof(meta<T>)));
 }

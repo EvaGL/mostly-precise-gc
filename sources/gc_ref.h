@@ -7,7 +7,6 @@
 #include <cstdio>
 #include "stack.h"
 #include <stdint.h>
-#include <msmalloc.h>
 
 /**
 * \class template smart pointer class gc_ptr

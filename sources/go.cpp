@@ -6,12 +6,9 @@
 
 #include "taginfo.h"
 #include "gc_new.h"
-#include "stack.h"
 #include "fake_roots.h"
-#include <stdint.h>
-#include "go.h"
-
-extern int nesting_level;
+#include "threading.h"
+extern thread_local int nesting_level;
 
 #ifdef DEBUGE_MODE
 	size_t live_object_count = 0;
@@ -30,6 +27,15 @@ void * get_ptr (void * ptr) {
 	} else {
 		dprintf(" %p !comp %p\n ", ptr, clear_stack_flag(ptr));
 		return clear_stack_flag(ptr);
+	}
+}
+
+void * move_ptr(void* ptr, void* value) {
+	if (is_composite_pointer(ptr)) {
+		((Composite_pointer*)clear_both_flags(ptr))->base = value;
+		return ptr;
+	} else {
+		return restore_flags(value, get_both_flags(ptr));
 	}
 }
 
@@ -56,54 +62,33 @@ void * get_next_obj(void * v) {  /* get the next object*/
 * TODO: it can throw exception in "v"'s incorrect pointer case
 */
 inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
-	return reinterpret_cast <base_meta *> ( *(reinterpret_cast <size_t *> (reinterpret_cast <size_t>(v) - sizeof(base_meta *))));
+	return (base_meta*)v - 1;
 }
 
 void * to_get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
-	return reinterpret_cast <void *> (reinterpret_cast <base_meta*>(v) + 1);
+	return reinterpret_cast <void *> ((base_meta*)(v) + 1);
 }
 
 /**	ifs stack frous up to max_stack_size
 *	then overflow case will be
 */
 #define max_stack_size 10000
-struct Stack {
-	struct StackEl {
-		void * pointer;
-		StackEl * prev;
-	};
-	StackEl * top;
-	int size;
-
+void* stack[max_stack_size];
+size_t stack_size;
 	int push (void * new_element) {
-		StackEl * st = (StackEl *)malloc(sizeof(StackEl));
-		if (!st || size >= max_stack_size) {
-			// fails to allocate memory
+		if (stack_size >= max_stack_size) {
 			return 1;
 		}
-		st->prev = top;
-		st->pointer = new_element;
-		top = st;
-		size++;
+		stack[stack_size++] = new_element;
 		return 0;
 	}
 
 	void * pop () {
-		if (!top) {
+		if (stack_size == 0) {
 			return NULL;
 		}
-		void * res = top->pointer;
-		StackEl * st = top;
-		top = top->prev;
-		// free(st);
-		transfer_to_automatic_objects(st);
-		return res;
+		return stack[--stack_size];
 	}
-
-	bool is_empty () {
-		return top == NULL;
-	}
-};
 
 /**
 * @function go
@@ -114,21 +99,24 @@ struct Stack {
 * @return nothing
 * @param v --- is a current traversing object (in first call --- roots and fake roots)
 */
-int go (void * pointer) {
+int go (void * pointer, bool pin_root) {
 	dprintf("\nin go %p\n", pointer);
 
 	if (!pointer || !is_heap_pointer(pointer)) {
 		dprintf("\nreturn! --- NULL or NON-heap pointer %p\n", pointer);
 		return 0;
 	}
-	Stack * vertices = (Stack *)malloc(sizeof(Stack));
-	vertices->top = NULL;
-	vertices->size = 0;
-	vertices->push(pointer);
+	if (pin_root) {
+		pin(get_meta_inf(pointer));
+	}
+
+	stack_size = 1;
+	stack[0] = pointer;
+
 	bool stack_overflow = false;
 
-	while (!vertices->is_empty()) {
-		void * v = vertices->pop();
+	while (stack_size != 0) {
+		void * v = pop();
 		if (v == NULL || !is_heap_pointer(v)) {
 			dprintf(" %p is not a heap pointer\n ", v);
 			continue;
@@ -160,7 +148,7 @@ int go (void * pointer) {
 								if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
 									dprintf("go : tag 1 : push : %p %i %i\n", next_vertice, get_mark(next_vertice),
 										get_mark(get_meta_inf(next_vertice)));
-									if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+									if (push(next_vertice)) { //i.e. fails to allocate memory
 										dprintf("go : tag 1 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
 											get_mark(next_vertice));
 										stack_overflow = true;
@@ -182,13 +170,13 @@ int go (void * pointer) {
 							void * meta = tag->ptr;
 							void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
 							size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
-							for (size_t i = 0; i < n; i++) {
+							for (size_t j = 0; j < n; j++) {
 								dprintf(" %i ", i);
 								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
 								if (p) {
 									void * next_vertice = get_next_obj(p);
 									if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
-										if (vertices->push(next_vertice)) { //i.e. fails to allocate memory
+										if (push(next_vertice)) { //i.e. fails to allocate memory
 											dprintf("go : tag 3 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
 												get_mark(next_vertice));
 											stack_overflow = true;
@@ -217,7 +205,6 @@ int go (void * pointer) {
 		}
 	}
 	// free(vertices);
-	transfer_to_automatic_objects(vertices);
 	return stack_overflow;
 }
 
@@ -232,7 +219,24 @@ int gc () {
 		return 1;
 	}
 	dprintf("gc: mark_and_sweep\n");
-	mark_and_sweep();
+	pthread_mutex_lock(&gc_mutex);
+		thread_handler* handler = get_thread_handler(pthread_self());
+		enter_safepoint(handler);
+		handler->stack_top = __builtin_frame_address(0);
+		if (!gc_thread) {
+			gc_thread = handler;
+			dprintf("thread %d is garbage collector\n", handler->thread);
+			mark_and_sweep();
+			gc_thread = nullptr;
+			exit_safepoint(handler);
+			pthread_cond_broadcast(&gc_is_finished);
+		} else {
+			dprintf("Thread %d reached safepoint\n", handler->thread);\
+			pthread_cond_signal(&safepoint_reached);
+			pthread_cond_wait(&gc_is_finished, &gc_mutex);
+			exit_safepoint(handler);
+		}
+	pthread_mutex_unlock(&gc_mutex);
 	return 0;
 }
 
@@ -267,13 +271,41 @@ void gc_delete (void * chunk) {
 	free(chunk);
 }
 
+extern void* __libc_stack_end;
+
+void mark_stack(thread_handler* thread) {
+	void * stack_bottom = thread->stack_bottom;
+	if (!stack_bottom) {
+		stack_bottom = __libc_stack_end;
+	}
+	void** curr = (void**) thread->stack_top;
+	assert(curr <= stack_bottom);
+	while (curr <= stack_bottom) {
+		if (is_heap_pointer(*curr)) {
+			dprintf("possible heap pointer: %p\n", *curr);
+			mark_dereferenced_root(*curr, thread->deref_roots);
+		}
+		curr++;
+	}
+}
+
 /**
 * @function mark_and_sweep
 * @detailed implements mark and sweep stop the world algorithm
 */
 void mark_and_sweep () {
-	dprintf("go.cpp: mark_and_sweep\n");
-	printf("mark and sweep!\nbefore:");	printDlMallocInfo(); fflush(stdout);
+	printf("go.cpp: mark_and_sweep\n");
+	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
+	thread_handler* handler = first_thread;
+	while (handler) {
+		while (!thread_in_safepoint(handler)) {
+			dprintf("Waiting thread %d to reach safepoint\n", handler->thread);
+			pthread_cond_wait(&safepoint_reached, &gc_mutex);
+		}
+		handler = handler->next;
+	}
+	dprintf("All in savepoint, collecting garbage\n");
+
 	mark_fake_roots();
 
 #ifdef DEBUGE_MODE
@@ -282,34 +314,54 @@ void mark_and_sweep () {
 	int over_count = 0;
 #endif
 	dprintf("roots: ");
-
-	// iterate root stack and call traversing function go
-	StackMap * stack_ptr = StackMap::getInstance();
-	bool stack_overflow = false;
-	for(Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
-		stack_overflow |= go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
-	#ifdef DEBUGE_MODE
+	handler = first_thread;
+	while (handler) {
+		// iterate root stack and call traversing function go
+		mark_stack(handler);
+		StackMap *stack_ptr = handler->stack;
+		bool stack_overflow = false;
+		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
+			stack_overflow |= go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+#ifdef DEBUGE_MODE
 		i++;
 	#endif
-		dprintf("root %p ", get_next_obj(*root));
-	}
+			dprintf("root %p ", get_next_obj(*root));
+		}
 
-#ifdef DEBUGE_MODE	
+#ifdef DEBUGE_MODE
 	printf("\nroot count = %i; live_object_count = %zu\n", i, live_object_count);
 #endif
-	while (stack_overflow) {
-		dprintf("mark_after_overflow\n");
-		stack_overflow = mark_after_overflow();
-	#ifdef DEBUGE_MODE
+		while (stack_overflow) {
+			dprintf("mark_after_overflow\n");
+			stack_overflow = mark_after_overflow();
+#ifdef DEBUGE_MODE
 		over_count++;
 	#endif
-	}
+		}
 #ifdef DEBUGE_MODE
 	printf("over_count = %i\n", over_count);
 #endif
+		handler = handler->next;
+	}
 
 	// call sweep function (look at msmalloc)
 	dprintf("call sweep\n");
 	sweep();
-	printf("after: "); printDlMallocInfo(); fflush(stdout);
+	handler = first_thread;
+	while (handler) {
+		sweep_dereferenced_roots(handler->deref_roots);
+		handler = handler->next;
+	}
+	dprintf("after: "); //printDlMallocInfo(); fflush(stdout);
+}
+
+void fix_roots() {
+	thread_handler *handler = first_thread;
+	while (handler) {
+		StackMap *stack_ptr = handler->stack;
+		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
+			fix_ptr(*root);
+		}
+		handler = handler->next;
+	}
 }

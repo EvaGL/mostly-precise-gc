@@ -26,7 +26,7 @@ void test () {
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
 	// mark_and_sweep();
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
-	// gc();
+	 gc();
 	list = list->tree_sort();
 	// gc();
 }
@@ -38,9 +38,9 @@ int main (int argc, char * argv[]) {
 	// 		debug_print = (arg.compare(8, 1, "1") == 0);
 	// 	}
 	// }
-	// for (int i = 0; i < 10; i++) {
+	 for (int i = 0; i < 300; i++) {
 		test();
-	// }
+	 }
 	// gc();
 	return 0;
 }

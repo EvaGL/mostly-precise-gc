@@ -95,7 +95,7 @@ node * balance (node * p) {
 node * insert (node * p, void * k) {
 	if (!p) {
 		node * new_node = (node *) malloc(sizeof(node));
-		transfer_to_automatic_objects(new_node);
+		//transfer_to_automatic_objects(new_node);
 		new_node->addr = k;
 		new_node->right = new_node->left = 0;
 		new_node->height = 1;
