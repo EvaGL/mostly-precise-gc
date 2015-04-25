@@ -33,9 +33,9 @@ static const size_t BIG_BLOCK_THRESHOLD = PAGE_SIZE - sizeof(block) - sizeof(pag
 
 #define PIN_FLAG 1
 #define MARK_FLAG 2
-#define COPY_FLAG 4
+#define DEAD_FLAG 4
 
-#define block_size(b) (b->size & (~PIN_FLAG) & (~MARK_FLAG) & (~COPY_FLAG))
+#define block_size(b) (b->size & (~PIN_FLAG) & (~MARK_FLAG) & (~DEAD_FLAG))
 
 #define pin_block(b) (b->size |= PIN_FLAG)
 #define unpin_block(b) (b->size &= ~PIN_FLAG)
@@ -45,8 +45,8 @@ static const size_t BIG_BLOCK_THRESHOLD = PAGE_SIZE - sizeof(block) - sizeof(pag
 #define unmark_block(b) (b->size &= ~MARK_FLAG)
 #define block_is_marked(b) (b->size & MARK_FLAG)
 
-#define set_copy_flag(b) (b->size |= COPY_FLAG)
-#define block_was_copied(b) (b->size & COPY_FLAG)
+#define set_dead_flag(b) (b->size |= DEAD_FLAG)
+#define block_is_dead(b) (b->size & DEAD_FLAG)
 
 #define forward_pointer(b) (*((void**) b->data))
 #define set_forward_pointer(b, ptr) (*((void**)b->data) = ptr)
@@ -171,14 +171,11 @@ void fix_ptr(void *p) {
     if (p) {
         void *next = get_next_obj(p);
         if (next != nullptr) {
-            printf("next: %p\n", next);
             void* data_begin = get_meta_inf(next);
             block *moved_block = get_block(data_begin);
-            if (block_was_copied(moved_block)) {
+            if (block_is_marked(moved_block)) {
                 base_meta* moved_meta = (base_meta *) forward_pointer(moved_block);
-                printf("before: %p\n", *(void**)p);
                 *(void **) p = move_ptr(*(void**)p, to_get_meta_inf(moved_meta));
-                printf("after: %p\n", *(void**)p);
             }
         }
     }
@@ -226,6 +223,16 @@ void sweep() {
         }
         if (b == curr_page->free_block) {
             prev_page = curr_page;
+        } else { // block is pinned
+            b = curr_page->first_block;
+            while (b != curr_page->free_block) {
+                if (!block_is_marked(b) && !block_is_pinned(b)) {
+                    set_dead_flag(b);
+                }
+                unmark_block(b);
+                unpin_block(b);
+                b = next_block(b);
+            }
         }
         curr_page = next_page;
     }
@@ -236,7 +243,6 @@ void sweep() {
         while (b != curr_page->free_block) {
             assert(!block_is_pinned(b));
             if (block_is_marked(b)) {
-                set_copy_flag(b);
                 size_t s = block_size(b);
                 block *block_to_copy = malloc_internal(s, &alive_pages);
                 assert(block_to_copy != nullptr); //TODO: THINK!!
@@ -252,8 +258,12 @@ void sweep() {
     while (curr_page != nullptr) {
         block *b = curr_page->first_block;
         while (b != curr_page->free_block) {
-            unmark_block(b);
-            unpin_block(b);
+            assert(!block_is_pinned(b));
+            assert(!block_is_marked(b));
+            if (block_is_dead(b)) {
+                b = next_block(b);
+                continue;
+            }
             void *data = b->data + sizeof(base_meta);
             base_meta *meta = (base_meta *) b->data;
             BLOCK_TAG *tag = (BLOCK_TAG *) meta->shell;

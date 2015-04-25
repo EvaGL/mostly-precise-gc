@@ -1,7 +1,6 @@
 #include "deref_roots.h"
 #include "go.h"
 #include "threading.h"
-#include "malloc.h"
 #include <assert.h>
 #include <sys/mman.h>
 
@@ -31,7 +30,7 @@ void register_dereferenced_root(void* root, size_t size) {
         init = true;
     }
 
-    if(!root || ((size_t) root) % 2 != 0) {
+    if(!root) {
         return;
     }
 
@@ -62,6 +61,9 @@ void register_dereferenced_root(void* root, size_t size) {
 }
 
 void mark_dereferenced_root(void* root, void* h) {
+    if (!root || ((size_t) root) % 2 != 0) {
+        return;
+    }
     root_handler** hashtable = (root_handler**) h;
     size_t hash = ((size_t)root >> 3) % N;
     root_handler* curr = hashtable[hash];

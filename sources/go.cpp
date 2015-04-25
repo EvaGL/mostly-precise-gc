@@ -170,7 +170,7 @@ int go (void * pointer, bool pin_root) {
 							void * meta = tag->ptr;
 							void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
 							size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
-							for (size_t i = 0; i < n; i++) {
+							for (size_t j = 0; j < n; j++) {
 								dprintf(" %i ", i);
 								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
 								if (p) {
@@ -294,7 +294,7 @@ void mark_stack(thread_handler* thread) {
 * @detailed implements mark and sweep stop the world algorithm
 */
 void mark_and_sweep () {
-	dprintf("go.cpp: mark_and_sweep\n");
+	printf("go.cpp: mark_and_sweep\n");
 	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
 	thread_handler* handler = first_thread;
 	while (handler) {
