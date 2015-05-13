@@ -8,8 +8,6 @@
 #include "gc_new.h"
 #include "fake_roots.h"
 #include "threading.h"
-extern thread_local int nesting_level;
-
 #ifdef DEBUGE_MODE
 	size_t live_object_count = 0;
 #endif
@@ -61,7 +59,7 @@ void * get_next_obj(void * v) {  /* get the next object*/
 * @param v --- pointer to the managed object
 * TODO: it can throw exception in "v"'s incorrect pointer case
 */
-inline base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
+base_meta * get_meta_inf (void * v) {  /*!< get the block with meta_inf*/
 	return (base_meta*)v - 1;
 }
 
@@ -214,13 +212,13 @@ int go (void * pointer, bool pin_root) {
 * @return 0 in normal case; 1 in unsafe point case (nesting_level != 0)
 */
 int gc () {
-	dprintf("in gc, %i ", nesting_level);
-	if (nesting_level != 0) {
-		return 1;
-	}
 	dprintf("gc: mark_and_sweep\n");
 	pthread_mutex_lock(&gc_mutex);
 		thread_handler* handler = get_thread_handler(pthread_self());
+		if (handler->tlflags->nesting_level != 0) {
+			pthread_mutex_unlock(&gc_mutex);
+			return 1;
+		}
 		enter_safepoint(handler);
 		handler->stack_top = __builtin_frame_address(0);
 		if (!gc_thread) {

@@ -28,11 +28,6 @@
 #define get_both_flags(x)       (uintptr_t) ((uintptr_t)x & (uintptr_t)3)
 #define restore_flags(x, fl)    (void*)     ((uintptr_t)x | (uintptr_t)fl)
 
-extern thread_local std::vector <size_t> offsets;
-extern bool thread_local new_active;	/**< global flag. False --- (out of gc_new) not to save offsets, true --- (in gc_new), save offsets */
-extern bool thread_local no_active;	/**< global flag. If true --- not to save offsets or set stack flag, because now is allocating an array in the heap */
-extern size_t thread_local current_pointer_to_object;	/**< used in offsets calculation */
-
 /**
 * @class Composite_pointer
 * @brief represents tertiary pointer level;
@@ -123,21 +118,24 @@ private:
 	* @param p pointer manafed object
 	*/
 	gc_ptr (T* p) {
+		pthread_mutex_lock(&gc_mutex);
+		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr(T* p) { %p\n", this);
 		ptr = (void *) p;
-		if (!new_active) {
+		if (!new_obj_flags->new_active) {
 			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 			dprintf("\tstack\n");
 		} else if (is_heap_pointer(this)) {
-			if (no_active) {
+			if (new_obj_flags->no_active) {
 				dprintf("\tno_active\n");
 				return;
 			}
 			dprintf("\theap\n");
-			assert(current_pointer_to_object != 0);
-			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
+			assert(new_obj_flags->current_pointer_to_object != 0);
+			new_obj_flags->offsets.push_back(reinterpret_cast <size_t> (this) - new_obj_flags->current_pointer_to_object);
 		}
 	}
 
@@ -155,21 +153,24 @@ public:
 	* @detailed sets ptr pointer on NULL
 	*/
 	gc_ptr () {
+		pthread_mutex_lock(&gc_mutex);
+		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr() { %p\n", this);
 		ptr = 0;
-		if (!new_active) {
+		if (!new_obj_flags->new_active) {
 			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 			dprintf("\tstack\n");
 		} else if (is_heap_pointer(this)) {
-			if (no_active) {
+			if (new_obj_flags->no_active) {
 				dprintf("\tno_active\n");
 				return;
 			}
 			dprintf("\theap; offsets:push_back\n");
-			assert(current_pointer_to_object != 0);
-			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
+			assert(new_obj_flags->current_pointer_to_object != 0);
+			new_obj_flags->offsets.push_back(reinterpret_cast <size_t> (this) - new_obj_flags->current_pointer_to_object);
 		}
 		dprintf("end gc_ptr()\n");
 	}
@@ -179,24 +180,27 @@ public:
 	* @param p is a gc_ptr to be copied
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
+		pthread_mutex_lock(&gc_mutex);
+		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr (const ...)\n");
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
 		if (is_composite_pointer(p.ptr)) {
 			((Composite_pointer *)(clear_both_flags(p.ptr)))->ref_count++;
 		}
-		if (!new_active) {
+		if (!new_obj_flags->new_active) {
 			dprintf("\tstack pointer\n");
 			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 		} else if (is_heap_pointer(this)) {
-			if (no_active) {
+			if (new_obj_flags->no_active) {
 				dprintf("\tno_active\n");
 				return;
 			}
 			dprintf("\theap pointer\n");
-			assert(current_pointer_to_object != 0);
-			offsets.push_back(reinterpret_cast <size_t> (this) - current_pointer_to_object);
+			assert(new_obj_flags->current_pointer_to_object != 0);
+			new_obj_flags->offsets.push_back(reinterpret_cast <size_t> (this) - new_obj_flags->current_pointer_to_object);
 		}
 	}
 

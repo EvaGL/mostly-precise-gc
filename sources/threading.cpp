@@ -38,6 +38,7 @@ void* start_routine(void* hand) {
      handler->thread = pthread_self();
      handler->stack_bottom = __builtin_frame_address(0);
      handler->flags = 0;
+     handler->tlflags = &new_obj_flags_tl_instance;
      dprintf("Starting thread %d\n", handler->thread);
 
      pthread_mutex_lock(&gc_mutex);
@@ -66,6 +67,7 @@ void create_first_handler() {
      first_thread->stack_bottom = nullptr;
      first_thread->deref_roots = deref_roots;
      first_thread->flags = 0;
+     first_thread->tlflags = &new_obj_flags_tl_instance;
 }
 
 int thread_create(pthread_t *thread, const pthread_attr_t *attr, void* (*routine) (void*), void* arg) {

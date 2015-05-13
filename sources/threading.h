@@ -7,7 +7,7 @@
 #include <pthread.h>
 #include "stack.h"
 #include "deref_roots.h"
-
+#include "tlvars.h"
 
 struct thread_handler {
         pthread_t thread;
@@ -19,6 +19,7 @@ struct thread_handler {
         void* stack_top;
         void* stack_bottom;
         thread_handler* next;
+        tlvars *tlflags;
 };
 
 #define thread_in_safepoint(h) (h->flags & 2)

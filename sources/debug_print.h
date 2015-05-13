@@ -4,10 +4,8 @@
 
 // #define DEBUGE_MODE
 
-static void dprintf (const char* s) {
-#ifndef DEBUGE_MODE
-	return;
-#endif
+#ifdef DEBUGE_MODE
+void dprintf (const char* s) {
 	while (*s) {
 		if (*s == '%' && *++s != '%') {
 			throw std::runtime_error("invalid format string: missing arguments");
@@ -18,10 +16,7 @@ static void dprintf (const char* s) {
 
 template<typename T, typename... Args>
 void dprintf (const char* s, const T& value, const Args&... args) {
-#ifndef DEBUGE_MODE
-	return;
-#endif
-	while (*s) { 
+	while (*s) {
 		if (*s == '%' && *++s != '%') {
 			std::cout << value;
 			return dprintf(++s, args...);
@@ -30,3 +25,7 @@ void dprintf (const char* s, const T& value, const Args&... args) {
 	}
 	throw std::runtime_error("extra arguments provided to printf");
 }
+
+#else
+#define dprintf(args...) (void) 0
+#endif
