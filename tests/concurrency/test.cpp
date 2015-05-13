@@ -8,7 +8,6 @@ void* routine(void* num) {
         for (int j = 0; j < 10000; ++j) {
             p[rand() % 10] = gc_new<int, int>(1);
         }
-        gc();
     }
 }
 

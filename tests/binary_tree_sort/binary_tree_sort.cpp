@@ -27,7 +27,7 @@ void test () {
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
 	// mark_and_sweep();
 	dprintf ("count: %i \n", list->count()); fflush (stdout);
-	 gc();
+	// gc();
 	list = list->tree_sort();
 	// gc();
 }
@@ -39,10 +39,11 @@ int main (int argc, char * argv[]) {
 	// 		debug_print = (arg.compare(8, 1, "1") == 0);
 	// 	}
 	// }
-	int seed = time(0);
-	printf("seed = %d\n", seed);
-	srand(seed);
+//	int seed = time(0);
+//	printf("seed = %d\n", seed);
+//	srand(seed);
 	 for (int i = 0; i < 300; i++) {
+		 printf("test %d\n", i);
 		test();
 	 }
 	// gc();

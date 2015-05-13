@@ -36,4 +36,5 @@ add_custom_target(tests
     DEPENDS gc_inside_method
             binary_tree_sort
             concurrency
-            mark-and-copy-test)
+            mark-and-copy-test
+            boehm)

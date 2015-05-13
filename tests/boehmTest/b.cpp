@@ -69,7 +69,7 @@ unsigned stats_rtclock( void ) {
   return (unsigned)(t.tv_sec * 1000 + t.tv_usec / 1000);
 }
 
-static const int kStretchTreeDepth    = 18;//18;      // about 16Mb
+static const int kStretchTreeDepth    = 14;//18;      // about 16Mb
 static const int kLongLivedTreeDepth  = 16;//16;  // about 4Mb
 static const int kArraySize  = 500000;//500000;  // about 4Mb
 static const int kMinTreeDepth = 4;//4
@@ -82,7 +82,7 @@ struct Node0 {
 	gc_ptr<Node0> left;
 	gc_ptr<Node0> right;
 	int i, j;
-	Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) { left = l; right = r; }
+	Node0(gc_ptr<Node0> l, gc_ptr<Node0> r) : left(l), right(r) {}
 	Node0() {
     #ifndef GC
       left = right = NULL;
@@ -327,7 +327,8 @@ struct GCBench {
   }
 };
 
-main () {
+int main () {
   GCBench x;
   x.main();
+  return 0;
 }
