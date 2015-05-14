@@ -119,12 +119,13 @@ private:
 	*/
 	gc_ptr (T* p) {
 		pthread_mutex_lock(&gc_mutex);
-		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		thread_handler *pHandler = get_thread_handler(pthread_self());
+		tlvars * new_obj_flags = pHandler->tlflags;
+		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr(T* p) { %p\n", this);
 		ptr = (void *) p;
 		if (!new_obj_flags->new_active) {
-			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 			dprintf("\tstack\n");
@@ -154,12 +155,13 @@ public:
 	*/
 	gc_ptr () {
 		pthread_mutex_lock(&gc_mutex);
-		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		thread_handler *pHandler = get_thread_handler(pthread_self());
+		tlvars * new_obj_flags = pHandler->tlflags;
+		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr() { %p\n", this);
 		ptr = 0;
 		if (!new_obj_flags->new_active) {
-			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 			dprintf("\tstack\n");
@@ -181,7 +183,9 @@ public:
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
 		pthread_mutex_lock(&gc_mutex);
-		tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+		thread_handler *pHandler = get_thread_handler(pthread_self());
+		tlvars * new_obj_flags = pHandler->tlflags;
+		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr (const ...)\n");
 		ptr = clear_stack_flag(p.ptr); //< also set composite flag if necessary
@@ -190,7 +194,6 @@ public:
 		}
 		if (!new_obj_flags->new_active) {
 			dprintf("\tstack pointer\n");
-			StackMap * stack_ptr = StackMap::getInstance();
 			stack_ptr->register_stack_root(this);
 			ptr = set_stack_flag(ptr);
 		} else if (is_heap_pointer(this)) {

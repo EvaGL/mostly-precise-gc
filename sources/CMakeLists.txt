@@ -7,7 +7,6 @@ set(precisegc_LIB_SRCS
     go.h
     libprecisegc.h
     tlvars.h
-    meta_information.cpp
     meta_information.h
     stack.cpp
     stack.h
@@ -20,11 +19,6 @@ set(precisegc_LIB_SRCS
     tlvars.cpp)
 
 add_library(precisegc SHARED ${precisegc_LIB_SRCS})
-
-#find_library(MSMALLOC_LIB msmalloc REQUIRED)
-#find_path(MSMALLOC_PATH msmalloc.h)
-#include_directories(${MSMALLOC_PATH})
-#target_link_libraries (precisegc ${MSMALLOC_LIB})
 
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_path(PTHREAD_PATH pthread.h)

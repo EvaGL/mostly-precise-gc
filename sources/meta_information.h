@@ -1,19 +1,30 @@
 #pragma once
-#include "tlvars.h"
-/**
-* @function checks is class name str contains in list of metainformation
-* @return pointer on the class meta (second element of MetaInformation structure)
-*	or NULL in the non-availability such element case 
-*/
-void * contains					(MetaInformation * meta, const void * name);
+#include <pthread.h>
 
-/**
-* @function && @return the same as contains-func
-*/
-void * getClassMetaPointer		(MetaInformation * meta, const void * name);
+struct meta_holder{
+    void* clMeta;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+};
 
-/**
-* @function adds new element in class meta list
-* @params --- fields of new MetaInformation (structure) element
-*/
-void addNewClassMetaInformation	(tlvars * flags, const void * name, void * ptr);
+template <typename T>
+meta_holder* get_meta_holder() {
+    static meta_holder holder;
+    return &holder;
+}
+
+template <typename T>
+void* get_meta() {
+    meta_holder* holder = get_meta_holder<T>();
+    pthread_mutex_lock(&holder->mutex);
+    void* result = holder->clMeta;
+    pthread_mutex_unlock(&holder->mutex);
+    return result;
+}
+
+template <typename T>
+void set_meta(void* clMeta) {
+    meta_holder* holder = get_meta_holder<T>();
+    pthread_mutex_lock(&holder->mutex);
+    holder->clMeta = clMeta;
+    pthread_mutex_unlock(&holder->mutex);
+}

@@ -39,8 +39,7 @@ bool hasOffsets (tlvars * new_obj_flags) {
 	std::vector<size_t> temp;
 	temp.swap(new_obj_flags->offsets);
 	size_t old_current_pointer_to_object = new_obj_flags->current_pointer_to_object;
-	void * type_name_pointer = (void*)typeid(T).hash_code();
-	void * clMeta = contains(new_obj_flags->classMeta, type_name_pointer);
+	void * clMeta = get_meta<T>();
 	/* allocate space */
 	void * res = my_malloc(sizeof(T) + sizeof(void*) + sizeof(meta<T>));
 	new_obj_flags->current_pointer_to_object = reinterpret_cast <size_t> (res + sizeof(void*) + sizeof(meta<T>));
@@ -59,14 +58,14 @@ bool hasOffsets (tlvars * new_obj_flags) {
 			* this args means, that it is simple object without any offsets.
 			*/
 			m_inf->shell = create_generic_object(0, 0, 1);
-			addNewClassMetaInformation(new_obj_flags, type_name_pointer, m_inf->shell);
+			set_meta<T>(m_inf->shell);
 		}
 	} else {
 		if (clMeta) {
 			m_inf->shell = clMeta;
 		} else {
 			m_inf->shell = generic_box_struct (std::move(new_obj_flags->offsets), sizeof(T), 1);
-			addNewClassMetaInformation(new_obj_flags, type_name_pointer, m_inf->shell);
+			set_meta<T>(m_inf->shell);
 		}
 	}
 
@@ -100,9 +99,8 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 		safepoint();
 	}
 	dprintf("in gc_new: \n");
-	void * type_name_pointer = (void*)typeid(T).hash_code();
 	// get pointer to class meta or NULL if it is no meta for this class
-	void * clMeta = contains(new_obj_flags->classMeta, type_name_pointer);
+	void * clMeta = get_meta<T>();
 	dprintf("\tclMeta=%p\n", clMeta);
 
 	/* set global active flags */
@@ -114,7 +112,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	/* metainformation that will be stored directly with object */
 	meta<T>* m_inf = NULL;
 	/* initialize object which will be store the result and allocate space */
-	void * res = malloc(sizeof(T) * count + sizeof(meta<T>));
+	void * res = my_malloc(sizeof(T) * count + sizeof(meta<T>));
 	dprintf("gc_new: %p\n", res);
 	new_obj_flags->nesting_level++;
 
@@ -194,7 +192,7 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 				/*create new box and save pointer in shell */
 				m_inf->shell = generic_box_struct (std::move(new_obj_flags->offsets), sizeof(T), count);
 			}
-			addNewClassMetaInformation(new_obj_flags, type_name_pointer, m_inf->shell);
+			set_meta<T>(m_inf->shell);
 		} else {
 			dprintf("\tcount != 1\n");
 			new_obj_flags->no_active = true; // offsets wont counting yet
@@ -206,14 +204,12 @@ gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 			dprintf("\tcall hasOffsets\n");
 			// force counting class metainfo, because it can be that we have not meta for class T
 			if (hasOffsets<T>(new_obj_flags)) {
-				clMeta = contains(new_obj_flags->classMeta, type_name_pointer);
+				clMeta = get_meta<T>();
 				assert(clMeta != NULL);
 				m_inf->shell = create_boxed_array(count, clMeta, sizeof(T));
 			} else {
-				clMeta = contains(new_obj_flags->classMeta, type_name_pointer);
 				m_inf->shell = create_unboxed_array(count);
 			}
-			assert(clMeta != NULL);
 		}
 
 		/* restore old global variable values */
