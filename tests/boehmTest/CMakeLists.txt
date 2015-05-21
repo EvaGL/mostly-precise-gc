@@ -1,6 +1,6 @@
 set(TEST boehm)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -O0 -pg")
+set(CMAKE_CXX_FLAGS "-std=c++11 -O0 -g")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
 file(GLOB SOURCE "*.cpp")
 add_executable(${TEST} EXCLUDE_FROM_ALL ${SOURCE})

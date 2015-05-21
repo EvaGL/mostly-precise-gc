@@ -17,7 +17,7 @@ struct B {
 struct big_struct {
     void* forward_pointer;
     gc_ptr<big_struct> next;
-    char data[15*4096];
+    char data[3*4096];
 
     big_struct() {
         forward_pointer = this;

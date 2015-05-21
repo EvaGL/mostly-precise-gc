@@ -303,7 +303,6 @@ void mark_and_sweep () {
 		handler = handler->next;
 	}
 	dprintf("All in savepoint, collecting garbage\n");
-
 	mark_fake_roots();
 
 #ifdef DEBUGE_MODE
