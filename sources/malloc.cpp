@@ -40,6 +40,8 @@ static size_t page_per_map = 32;
 static size_t PAGE_SIZE = 0;
 static size_t BIG_BLOCK_THRESHOLD;
 static const float EXPAND_FACTOR = 2;
+static page* free_blocks[40960];
+static size_t max_free_block;
 #define align(s) (s & 7 == 0 ? s : (((s >> 3) + 1) << 3))
 
 #define PIN_FLAG 1
@@ -63,6 +65,9 @@ static const float EXPAND_FACTOR = 2;
 #define set_forward_pointer(b, ptr) (*((void**)b->data) = ptr)
 #define next_block(b) ((block*)(((char*)b) + sizeof(block) + block_size(b)))
 #define page_is_full(p) ((char*)(p->free_block) == ((char*)p) + PAGE_SIZE)
+
+#define set_next_free_block(p, ptr) set_forward_pointer(p->free_block, ptr)
+#define next_free_block(p) (page*) forward_pointer(p->free_block)
 
 #define get_block(p) ((block*)((char*)p - sizeof(block)))
 
@@ -190,7 +195,6 @@ void* malloc_internal(size_t s, bool expand) {
         return b->data;
     }
 
-//    assert(last_page->next == nullptr);
     if (page_is_full(last_page) || block_size(last_page->free_block) < s) {
         last_page->next = request_new_page(expand);
         if (last_page->next == nullptr) {
@@ -212,7 +216,6 @@ void* gcmalloc(size_t s) {
     void* res = malloc_internal(align(s), false);
     pthread_mutex_unlock(&malloc_mutex);
     if (res == nullptr) {
-        printf("we need gc\n!");
         gc();
     }
     pthread_mutex_lock(&malloc_mutex);
@@ -235,19 +238,32 @@ void fix_ptr(void *p) {
     }
 }
 
-inline void copy_block(block* b, page* alive_pages) {
+inline void copy_block(block* b) {
     size_t s = block_size(b);
-    page* curr_page = alive_pages;
-    while (page_is_full(curr_page) || block_size(curr_page->free_block) < s) {
-        if (curr_page->next == nullptr) {
-            curr_page->next = request_new_page(true);
-            assert(curr_page->next != nullptr);
+    page* curr_page = nullptr;
+    for (size_t free_size = s; free_size <= max_free_block; free_size += sizeof(void*)) {
+        if (free_blocks[free_size] != nullptr) {
+            curr_page = free_blocks[free_size];
+            free_blocks[free_size] = next_free_block(curr_page);
+            break;
         }
-        curr_page = curr_page->next;
     }
-    block* block_to_copy = malloc_in_page(s, curr_page);
+    if (curr_page == nullptr) {
+        last_page->next = request_new_page(true);
+        last_page = last_page->next;
+        curr_page = last_page;
+    }
+    block* block_to_copy = malloc_in_page(s, last_page);
     memcpy(block_to_copy->data, b->data, s);
     set_forward_pointer(b, block_to_copy->data);
+    if (!page_is_full(curr_page)) {
+        size_t free_size = block_size(curr_page->free_block);
+        set_next_free_block(curr_page, free_blocks[free_size]);
+        free_blocks[free_size] = curr_page;
+        if (max_free_block < free_size) {
+            max_free_block = free_size;
+        }
+    }
 }
 
 inline void sweep_big_blocks() {
@@ -275,13 +291,14 @@ inline void sweep_big_blocks() {
 void sweep() {
     long long start = nanotime();
     sweep_big_blocks();
-    printf("sweep big blocks: %lld\n", nanotime() - start);
+    max_free_block = 0;
     page *alive_pages = nullptr;
     page *curr_page = first_page;
     page *prev_page = nullptr;
+    last_page = nullptr;
     while (curr_page != nullptr) {
         block *b = curr_page->first_block;
-        page* next_page = curr_page->next;
+        page *next_page = curr_page->next;
         while (b != curr_page->free_block) {
             if (block_is_pinned(b)) {
                 if (prev_page == nullptr) {
@@ -307,10 +324,20 @@ void sweep() {
                 unpin_block(b);
                 b = next_block(b);
             }
+            if (!page_is_full(curr_page)) {
+                size_t free_size = block_size(curr_page->free_block);
+                set_next_free_block(curr_page, free_blocks[free_size]);
+                free_blocks[free_size] = curr_page;
+                if (max_free_block < free_size) {
+                    max_free_block = free_size;
+                }
+            }
+            if (last_page == nullptr) {
+                last_page = alive_pages;
+            }
         }
         curr_page = next_page;
     }
-    printf("pin pages: %lld\n", nanotime() - start);
 
     curr_page = first_page;
     while (curr_page != nullptr) {
@@ -320,14 +347,14 @@ void sweep() {
             if (block_is_marked(b)) {
                 if (alive_pages == nullptr) {
                     alive_pages = request_new_page(true);
+                    last_page = alive_pages;
                 }
-                copy_block(b, alive_pages);
+                copy_block(b);
             }
             b = next_block(b);
         }
         curr_page = curr_page->next;
     }
-    printf("copy blocks: %lld\n", nanotime() - start);
 
     curr_page = alive_pages;
     while (curr_page != nullptr) {
@@ -345,7 +372,7 @@ void sweep() {
             size_t sizeType = 0;
             size_t sizeArray = 0;
             size_t n = 0;
-            char* offsets_base = nullptr;
+            char *offsets_base = nullptr;
             switch (tag->model) {
                 case 1:
                     sizeArray = 1;
@@ -372,21 +399,20 @@ void sweep() {
             }
             b = next_block(b);
         }
-        if (curr_page->next == nullptr) {
-            last_page = curr_page;
-        }
         curr_page = curr_page->next;
     }
 
     fix_roots();
-    printf("fix pointers: %lld\n", nanotime() - start);
     curr_page = first_page;
     while (curr_page != nullptr) {
-        page* next = curr_page->next;
+        page *next = curr_page->next;
         curr_page->next = free_list;
         free_list = curr_page;
         curr_page = next;
     }
     first_page = alive_pages;
-    printf("free pages: %lld\n", nanotime() - start);
+
+    for (size_t free_size = sizeof(void *); free_size <= max_free_block; free_size += sizeof(void *)) {
+        free_blocks[free_size] = nullptr;
+    }
 }
