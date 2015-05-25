@@ -10,6 +10,7 @@ pthread_mutex_t gc_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t gc_is_finished = PTHREAD_COND_INITIALIZER;
 pthread_cond_t safepoint_reached = PTHREAD_COND_INITIALIZER;
 thread_handler* gc_thread;
+volatile bool more_than_one = false;
 
 thread_handler* first_thread = nullptr;
 
@@ -25,6 +26,9 @@ void remove_thread(pthread_t thread) {
                first_thread = curr->next;
           } else {
                prev->next = curr->next;
+          }
+          if (first_thread->next == nullptr) {
+               more_than_one = false;
           }
      without_gc_after()
      munmap(curr, sizeof(thread_handler));
@@ -45,6 +49,7 @@ void* start_routine(void* hand) {
          dprintf("waiting for gc before starting thread %d\n", handler->thread);
          pthread_cond_wait(&gc_is_finished, &gc_mutex);
      }
+     more_than_one = true;
      handler->next = first_thread;
      first_thread = handler;
      pthread_mutex_unlock(&gc_mutex);
@@ -112,7 +117,6 @@ thread_handler* get_thread_handler(pthread_t thread) {
           create_first_handler();
      }
      thread_handler* curr = first_thread;
-     assert(curr != nullptr);
      while (!pthread_equal(curr->thread, thread)) {
           curr = curr->next;
      }

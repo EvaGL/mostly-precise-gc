@@ -22,6 +22,8 @@ static pthread_mutex_t deref_mutex = PTHREAD_MUTEX_INITIALIZER;
 static size_t mmap_count = 4096 * 128;
 static size_t count = 0;
 static size_t total_count = 0;
+static size_t expand_count = 0;
+static size_t expand_factor = 8;
 
 long long nanotime( void ) {
     timespec ts;
@@ -55,15 +57,20 @@ void register_dereferenced_root(void* root, size_t size) {
     count++;
     bool need_gc = false;
     if (count == total_count) {
-        need_gc = true;
+        expand_count++;
+        need_gc = expand_count % expand_factor == 0;
     }
     pthread_mutex_unlock(&deref_mutex);
     if (need_gc) {
-        gc();
+        gc(false);
+        expand_count = 0;
+        if (expand_factor != 1) {
+            expand_factor /= 2;
+        }
     }
 }
 
-void mark_dereferenced_root(void* root) {
+void mark_dereferenced_root(void* root, bool full_gc) {
     if (!root || ((size_t) root) % 2 != 0) {
         return;
     }
@@ -73,7 +80,9 @@ void mark_dereferenced_root(void* root) {
         if (contains(curr, root)) {
             if (!deref_is_marked(curr)) {
                 deref_mark(curr);
-                go(plain_pointer(curr), true);
+                if (full_gc) {
+                    go(plain_pointer(curr), true);
+                }
             }
             return;
         }

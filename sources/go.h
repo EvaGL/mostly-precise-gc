@@ -25,7 +25,7 @@ void mark_and_sweep ();
 		* @detailed forse garbage collection call for malloc's from msmalloc
 		* @return 0 in normal case; 1 in unsafe point case (nesting_level != 0)
 		*/
-		int gc ();
+		int gc (bool full=true);
 		/**
 		* @function gc_delete
 		* @detailed gc delete function

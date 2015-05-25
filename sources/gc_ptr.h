@@ -78,7 +78,6 @@ template <typename T>
 class gc_ptr {
 private:
 	void * ptr; /**< pointer directly on specified managed object */
-
 	/**
 	* @function get_base_ptr
 	* @param ptr is a pointer directly on the managed object

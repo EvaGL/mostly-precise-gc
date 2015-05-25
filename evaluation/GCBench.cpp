@@ -69,7 +69,7 @@ static const int kStretchTreeDepth    = TREE_SIZE;      // about 16Mb
 static const int kLongLivedTreeDepth  = 16;  // about 4Mb
 static const int kArraySize  = 500000;  // about 4Mb
 static const int kMinTreeDepth = 4;
-static const int kMaxTreeDepth = 16;
+static const int kMaxTreeDepth = TREE_SIZE - 2;
 
 struct Node0 {
         ptype(Node0) left;

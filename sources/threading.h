@@ -44,7 +44,7 @@ struct thread_handler {
      pthread_mutex_unlock(&gc_mutex);\
 }
 
-#define safepoint() {\
+#define safepoint() if (more_than_one) {\
         without_gc_before()\
         without_gc_after()\
 }
@@ -54,6 +54,7 @@ extern pthread_cond_t gc_is_finished;
 extern pthread_cond_t safepoint_reached;
 extern thread_handler* first_thread;
 extern thread_handler* gc_thread;
+extern volatile bool more_than_one;
 
 int thread_create(pthread_t *thread, const pthread_attr_t *attr,
         void* (*routine) (void*), void* arg);

@@ -206,12 +206,14 @@ int go (void * pointer, bool pin_root) {
 	return stack_overflow;
 }
 
+void clean_deref_roots();
+
 /**
 * @function gc
 * @detailed forse garbage collection call for malloc's from msmalloc
 * @return 0 in normal case; 1 in unsafe point case (nesting_level != 0)
 */
-int gc () {
+int gc (bool full) {
 	dprintf("gc: mark_and_sweep\n");
 	pthread_mutex_lock(&gc_mutex);
 		thread_handler* handler = get_thread_handler(pthread_self());
@@ -224,7 +226,11 @@ int gc () {
 		if (!gc_thread) {
 			gc_thread = handler;
 			dprintf("thread %d is garbage collector\n", handler->thread);
-			mark_and_sweep();
+			if (full) {
+				mark_and_sweep();
+			} else {
+				clean_deref_roots();
+			}
 			gc_thread = nullptr;
 			exit_safepoint(handler);
 			pthread_cond_broadcast(&gc_is_finished);
@@ -271,7 +277,7 @@ void gc_delete (void * chunk) {
 
 extern void* __libc_stack_end;
 
-void mark_stack(thread_handler* thread) {
+void mark_stack(thread_handler* thread, bool full_gc) {
 	void * stack_bottom = thread->stack_bottom;
 	if (!stack_bottom) {
 		stack_bottom = __libc_stack_end;
@@ -281,40 +287,47 @@ void mark_stack(thread_handler* thread) {
 	while (curr <= stack_bottom) {
 		if (is_heap_pointer(*curr)) {
 			dprintf("possible heap pointer: %p\n", *curr);
-			mark_dereferenced_root(*curr);
+			mark_dereferenced_root(*curr, full_gc);
 		}
 		curr++;
 	}
 }
 
-/**
-* @function mark_and_sweep
-* @detailed implements mark and sweep stop the world algorithm
-*/
-void mark_and_sweep () {
-	printf("go.cpp: mark_and_sweep\n");
-	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
+void clean_deref_roots() {
+	printf("Cleanup deref roots\n");
 	thread_handler* handler = first_thread;
 	while (handler) {
 		while (!thread_in_safepoint(handler)) {
 			dprintf("Waiting thread %d to reach safepoint\n", handler->thread);
 			pthread_cond_wait(&safepoint_reached, &gc_mutex);
 		}
+		mark_stack(handler, false);
 		handler = handler->next;
 	}
-	dprintf("All in savepoint, collecting garbage\n");
-	mark_fake_roots();
+	sweep_dereferenced_roots();
+}
 
+/**
+* @function mark_and_sweep
+* @detailed implements mark and sweep stop the world algorithm
+*/
+void mark_and_sweep() {
+	printf("go.cpp: mark_and_sweep\n");
+	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
 #ifdef DEBUGE_MODE
 	live_object_count = 0;
 	int i = 0;
 	int over_count = 0;
 #endif
 	dprintf("roots: ");
-	handler = first_thread;
+	thread_handler* handler = first_thread;
 	while (handler) {
+		while (!thread_in_safepoint(handler)) {
+			dprintf("Waiting thread %d to reach safepoint\n", handler->thread);
+			pthread_cond_wait(&safepoint_reached, &gc_mutex);
+		}
 		// iterate root stack and call traversing function go
-		mark_stack(handler);
+		mark_stack(handler, true);
 		StackMap *stack_ptr = handler->stack;
 		bool stack_overflow = false;
 		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
@@ -340,7 +353,7 @@ void mark_and_sweep () {
 #endif
 		handler = handler->next;
 	}
-
+	mark_fake_roots();
 	// call sweep function (look at msmalloc)
 	dprintf("call sweep\n");
 	sweep();
