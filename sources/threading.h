@@ -15,7 +15,6 @@ struct thread_handler {
         void* (*routine) (void*); // for init
         size_t flags;
         StackMap * stack;
-        void* deref_roots;
         void* stack_top;
         void* stack_bottom;
         thread_handler* next;

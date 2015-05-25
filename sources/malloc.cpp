@@ -77,12 +77,6 @@ page* last_page = nullptr;
 big_block* first_big_block = nullptr;
 pthread_mutex_t malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-long long nanotime( void ) {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec * 1000000000ll + ts.tv_nsec;
-}
-
 size_t get_mark(void* ptr) {
     return block_is_marked(get_block(ptr));
 }
@@ -173,7 +167,6 @@ inline page* request_new_page(bool expand) {
 
 inline block* malloc_in_page(size_t s, page* curr_page) {
     size_t s_and_block = s + sizeof(block);
-    assert(block_size(curr_page->free_block) >= s);
     block* new_block = curr_page->free_block;
     curr_page->free_block = (block *) (((char*) new_block) + s_and_block);
     if (!page_is_full(curr_page)) {
@@ -253,7 +246,7 @@ inline void copy_block(block* b) {
         last_page = last_page->next;
         curr_page = last_page;
     }
-    block* block_to_copy = malloc_in_page(s, last_page);
+    block* block_to_copy = malloc_in_page(s, curr_page);
     memcpy(block_to_copy->data, b->data, s);
     set_forward_pointer(b, block_to_copy->data);
     if (!page_is_full(curr_page)) {
@@ -289,7 +282,6 @@ inline void sweep_big_blocks() {
 }
 
 void sweep() {
-    long long start = nanotime();
     sweep_big_blocks();
     max_free_block = 0;
     page *alive_pages = nullptr;

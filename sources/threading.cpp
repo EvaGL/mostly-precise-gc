@@ -7,7 +7,6 @@
 #include "threading.h"
 
 pthread_mutex_t gc_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t gc_finished_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t gc_is_finished = PTHREAD_COND_INITIALIZER;
 pthread_cond_t safepoint_reached = PTHREAD_COND_INITIALIZER;
 thread_handler* gc_thread;
@@ -34,7 +33,6 @@ void remove_thread(pthread_t thread) {
 void* start_routine(void* hand) {
      thread_handler* handler = (thread_handler*) hand;
      handler->stack = StackMap::getInstance();
-     handler->deref_roots = deref_roots;
      handler->thread = pthread_self();
      handler->stack_bottom = __builtin_frame_address(0);
      handler->flags = 0;
@@ -65,7 +63,6 @@ void create_first_handler() {
      first_thread->next = nullptr;
      first_thread->stack = StackMap::getInstance();
      first_thread->stack_bottom = nullptr;
-     first_thread->deref_roots = deref_roots;
      first_thread->flags = 0;
      first_thread->tlflags = &new_obj_flags_tl_instance;
 }

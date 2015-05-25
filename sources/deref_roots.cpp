@@ -15,42 +15,36 @@ struct root_handler {
     void* end;
     root_handler * next;
 };
-static constexpr size_t N = 17971;
-static thread_local root_handler *roots[N];
-thread_local void* deref_roots = (void*) roots;
-static thread_local bool init = false;
-static thread_local root_handler* free_list = nullptr;
+static constexpr size_t N = 100003;
+static root_handler *roots[N];
+static root_handler* free_list = nullptr;
+static pthread_mutex_t deref_mutex = PTHREAD_MUTEX_INITIALIZER;
+static size_t mmap_count = 4096 * 128;
+static size_t count = 0;
+static size_t total_count = 0;
+
+long long nanotime( void ) {
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000ll + ts.tv_nsec;
+}
 
 void register_dereferenced_root(void* root, size_t size) {
-    safepoint();
-    if (!init) {
-        for (size_t i = 0; i < N; ++i) {
-            roots[i] = nullptr;
-        }
-        init = true;
-    }
-
     if(!root) {
         return;
     }
-
     size_t hash = ((size_t)root >> 3) % N;
-    root_handler* curr = roots[hash];
-    while (curr) {
-        if (plain_pointer(curr) == root) {
-            return;
-        }
-        curr = curr->next;
-    }
+    pthread_mutex_lock(&deref_mutex);
     if (free_list == nullptr) {
-        void* space = mmap(nullptr, 4096 * sizeof(root_handler), PROT_READ | PROT_WRITE,
+        void* space = mmap(nullptr, mmap_count * sizeof(root_handler), PROT_READ | PROT_WRITE,
             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         assert(space != MAP_FAILED);
-        void* space_end = space + 4096 * sizeof(root_handler);
+        void* space_end = space + mmap_count * sizeof(root_handler);
         for (root_handler* curr = (root_handler*) space; curr < space_end; ++curr) {
             curr->next = free_list;
             free_list = curr;
         }
+        total_count += mmap_count;
     }
     root_handler * data = free_list;
     free_list = free_list->next;
@@ -58,15 +52,23 @@ void register_dereferenced_root(void* root, size_t size) {
     data->p = (size_t) root;
     data->end = ((char*)root) + size;
     roots[hash] = data;
+    count++;
+    bool need_gc = false;
+    if (count == total_count) {
+        need_gc = true;
+    }
+    pthread_mutex_unlock(&deref_mutex);
+    if (need_gc) {
+        gc();
+    }
 }
 
-void mark_dereferenced_root(void* root, void* h) {
+void mark_dereferenced_root(void* root) {
     if (!root || ((size_t) root) % 2 != 0) {
         return;
     }
-    root_handler** hashtable = (root_handler**) h;
     size_t hash = ((size_t)root >> 3) % N;
-    root_handler* curr = hashtable[hash];
+    root_handler* curr = roots[hash];
     while (curr) {
         if (contains(curr, root)) {
             if (!deref_is_marked(curr)) {
@@ -79,22 +81,22 @@ void mark_dereferenced_root(void* root, void* h) {
     }
 }
 
-void sweep_dereferenced_roots(void* h) {
-    root_handler** hashtable = (root_handler**) h;
+void sweep_dereferenced_roots() {
     for (size_t i = 0; i < N; ++i) {
-        root_handler *curr = hashtable[i];
+        root_handler *curr = roots[i];
         root_handler *prev = nullptr;
         while (curr) {
             if (!deref_is_marked(curr)) {
                 root_handler *tmp = curr->next;
                 if (!prev) {
-                    hashtable[i] = curr->next;
+                    roots[i] = curr->next;
                 } else {
                     prev->next = curr->next;
                 }
                 curr->next = free_list;
                 free_list = curr;
                 curr = tmp;
+                count--;
             } else {
                 deref_unmark(curr);
                 prev = curr;

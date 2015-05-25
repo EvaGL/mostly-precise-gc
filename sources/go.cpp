@@ -281,7 +281,7 @@ void mark_stack(thread_handler* thread) {
 	while (curr <= stack_bottom) {
 		if (is_heap_pointer(*curr)) {
 			dprintf("possible heap pointer: %p\n", *curr);
-			mark_dereferenced_root(*curr, thread->deref_roots);
+			mark_dereferenced_root(*curr);
 		}
 		curr++;
 	}
@@ -344,11 +344,7 @@ void mark_and_sweep () {
 	// call sweep function (look at msmalloc)
 	dprintf("call sweep\n");
 	sweep();
-	handler = first_thread;
-	while (handler) {
-		sweep_dereferenced_roots(handler->deref_roots);
-		handler = handler->next;
-	}
+	sweep_dereferenced_roots();
 	dprintf("after: "); //printDlMallocInfo(); fflush(stdout);
 }
 
