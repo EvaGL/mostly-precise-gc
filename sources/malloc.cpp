@@ -38,10 +38,12 @@ static size_t parts_count = 0;
 
 static size_t page_per_map = 32;
 static size_t PAGE_SIZE = 0;
-static size_t BIG_BLOCK_THRESHOLD;
+static size_t BIG_BLOCK_THRESHOLD = 0;
 static const float EXPAND_FACTOR = 2;
-static page* free_blocks[40960];
+static page* free_blocks[4096 * 2];
 static size_t max_free_block = 0;
+static size_t free_pages = 0;
+static size_t total_pages = 0;
 #define align(s) (s & 7 == 0 ? s : (((s >> 3) + 1) << 3))
 
 #define PIN_FLAG 1
@@ -154,6 +156,8 @@ inline page* request_new_page(bool expand) {
             new_page->next = free_list;
             free_list = new_page;
             ptr += PAGE_SIZE;
+            free_pages++;
+            total_pages++;
         }
         page_per_map *= EXPAND_FACTOR;
     }
@@ -162,6 +166,7 @@ inline page* request_new_page(bool expand) {
     new_page->next = nullptr;
     new_page->free_block = new_page->first_block;
     new_page->free_block->size = BIG_BLOCK_THRESHOLD;
+    free_pages--;
     return new_page;
 }
 
@@ -212,6 +217,12 @@ void* gcmalloc(size_t s) {
         gc();
     }
     pthread_mutex_lock(&malloc_mutex);
+    if (first_page == nullptr) {
+        if ((first_page = request_new_page(true)) == nullptr) {
+            return nullptr;
+        }
+        last_page = first_page;
+    }
     res = malloc_internal(align(s), true);
     pthread_mutex_unlock(&malloc_mutex);
     return res;
@@ -402,6 +413,7 @@ void sweep() {
         curr_page->next = free_list;
         free_list = curr_page;
         curr_page = next;
+        free_pages++;
     }
     first_page = alive_pages;
 
