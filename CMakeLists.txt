@@ -37,4 +37,5 @@ add_custom_target(tests
             binary_tree_sort
             concurrency
             mark-and-copy-test
-            boehm)
+            boehm
+            gc_ptr_timing)
