@@ -119,9 +119,9 @@ private:
 	gc_ptr (T* p) {
 		pthread_mutex_lock(&gc_mutex);
 		thread_handler *pHandler = get_thread_handler();
+		pthread_mutex_unlock(&gc_mutex);
 		tlvars * new_obj_flags = pHandler->tlflags;
 		StackMap * stack_ptr = pHandler->stack;
-		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr(T* p) { %p\n", this);
 		ptr = (void *) p;
 		if (!new_obj_flags->new_active) {
@@ -155,9 +155,9 @@ public:
 	gc_ptr () {
 		pthread_mutex_lock(&gc_mutex);
 		thread_handler *pHandler = get_thread_handler();
+		pthread_mutex_unlock(&gc_mutex);
 		tlvars * new_obj_flags = pHandler->tlflags;
 		StackMap * stack_ptr = pHandler->stack;
-		pthread_mutex_unlock(&gc_mutex);
 		dprintf("gc_ptr() { %p\n", this);
 		ptr = 0;
 		if (!new_obj_flags->new_active) {
