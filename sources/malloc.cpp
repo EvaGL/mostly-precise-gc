@@ -225,6 +225,7 @@ void* gcmalloc(size_t s) {
     }
     res = malloc_internal(align(s), true);
     pthread_mutex_unlock(&malloc_mutex);
+    assert(res != nullptr);
     return res;
 }
 

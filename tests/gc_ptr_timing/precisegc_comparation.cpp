@@ -50,13 +50,15 @@ void gc_ptr_linked_list (void) {
 
 void gc_ptr_vector (void) {
     long tStart, tFinish;
-    std::vector<gc_ptr<Obj<int>>> gc_ptr_vector(N);
+    std::vector<gc_ptr<Obj<int>>> gc_ptr_vector;
     std::cout << "GC_PTR_vector sizeof " << N << " (int) elements:" << std::endl;
 
     std::cout << "\tCreating        ";
     tStart = currentTime();
     for (int i = 0; i < N; i++) {
-        std::cout << "\t " << i << std::endl;
+        if (i % 1000 == 0) {
+            std::cout << "\t " << i << std::endl;
+        }
         gc_ptr<Obj<int> > t = gc_new<Obj<int>, int>(i);
         gc_ptr_vector.push_back(t);
     }

@@ -330,8 +330,8 @@ void mark_and_sweep() {
 		mark_stack(handler, true);
 		StackMap *stack_ptr = handler->stack;
 		bool stack_overflow = false;
-		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
-			stack_overflow |= go(get_next_obj(*root)); /* mark all available objects with mbit = 1*/
+		for (StackElement* root = stack_ptr->begin(); root != nullptr; root = root->next) {/* walk through all roots*/
+			stack_overflow |= go(get_next_obj(root->addr)); /* mark all available objects with mbit = 1*/
 #ifdef DEBUGE_MODE
 		i++;
 	#endif
@@ -365,8 +365,8 @@ void fix_roots() {
 	thread_handler *handler = first_thread;
 	while (handler) {
 		StackMap *stack_ptr = handler->stack;
-		for (Iterator root = stack_ptr->begin(); root <= stack_ptr->end(); root++) {/* walk through all roots*/
-			fix_ptr(*root);
+		for (StackElement* root = stack_ptr->begin(); root != nullptr; root = root->next) {/* walk through all roots*/
+			fix_ptr(root->addr);
 		}
 		handler = handler->next;
 	}
