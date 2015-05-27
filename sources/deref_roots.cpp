@@ -39,7 +39,7 @@ void register_dereferenced_root(void* root, size_t size) {
     pthread_mutex_lock(&deref_mutex);
     if (free_list == nullptr) {
         void* space = mmap(nullptr, mmap_count * sizeof(root_handler), PROT_READ | PROT_WRITE,
-            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         assert(space != MAP_FAILED);
         void* space_end = space + mmap_count * sizeof(root_handler);
         for (root_handler* curr = (root_handler*) space; curr < space_end; ++curr) {

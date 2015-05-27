@@ -118,7 +118,7 @@ private:
 	*/
 	gc_ptr (T* p) {
 		pthread_mutex_lock(&gc_mutex);
-		thread_handler *pHandler = get_thread_handler(pthread_self());
+		thread_handler *pHandler = get_thread_handler();
 		tlvars * new_obj_flags = pHandler->tlflags;
 		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
@@ -154,7 +154,7 @@ public:
 	*/
 	gc_ptr () {
 		pthread_mutex_lock(&gc_mutex);
-		thread_handler *pHandler = get_thread_handler(pthread_self());
+		thread_handler *pHandler = get_thread_handler();
 		tlvars * new_obj_flags = pHandler->tlflags;
 		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
@@ -182,7 +182,7 @@ public:
 	*/
 	gc_ptr (const gc_ptr <T> &p) {
 		pthread_mutex_lock(&gc_mutex);
-		thread_handler *pHandler = get_thread_handler(pthread_self());
+		thread_handler *pHandler = get_thread_handler();
 		tlvars * new_obj_flags = pHandler->tlflags;
 		StackMap * stack_ptr = pHandler->stack;
 		pthread_mutex_unlock(&gc_mutex);
@@ -224,7 +224,9 @@ public:
 		dprintf("~gc_ptr: %p; ", this);
 		if (is_stack_pointer(ptr)) {
 			dprintf("~gc_ptr -> delete stack root: %p\n", this);
-			StackMap * stack_ptr = StackMap::getInstance();
+			pthread_mutex_lock(&gc_mutex);
+			StackMap * stack_ptr = get_thread_handler()->stack;
+			pthread_mutex_unlock(&gc_mutex);
 			stack_ptr->delete_stack_root(this);
 		}
 		if (is_composite_pointer(ptr)) {

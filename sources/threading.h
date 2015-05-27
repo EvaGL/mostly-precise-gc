@@ -27,7 +27,7 @@ struct thread_handler {
 
 #define without_gc_before() {\
      pthread_mutex_lock(&gc_mutex);\
-     thread_handler * ___current_thread_handler = get_thread_handler(pthread_self());\
+     thread_handler * ___current_thread_handler = get_thread_handler();\
      ___current_thread_handler->stack_top = __builtin_frame_address(0);\
      enter_safepoint(___current_thread_handler);\
      if (gc_thread) {\
@@ -62,5 +62,5 @@ void thread_join(pthread_t thread, void** thread_return);
 void thread_exit(void** retval);
 void thread_cancel(pthread_t thread);
 
-thread_handler* get_thread_handler(pthread_t thread);
+thread_handler* get_thread_handler();
 #endif //_DIPLOMA_THREADING_H_

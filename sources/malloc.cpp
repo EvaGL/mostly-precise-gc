@@ -41,7 +41,7 @@ static size_t PAGE_SIZE = 0;
 static size_t BIG_BLOCK_THRESHOLD;
 static const float EXPAND_FACTOR = 2;
 static page* free_blocks[40960];
-static size_t max_free_block;
+static size_t max_free_block = 0;
 #define align(s) (s & 7 == 0 ? s : (((s >> 3) + 1) << 3))
 
 #define PIN_FLAG 1
@@ -64,18 +64,18 @@ static size_t max_free_block;
 #define forward_pointer(b) (*((void**) b->data))
 #define set_forward_pointer(b, ptr) (*((void**)b->data) = ptr)
 #define next_block(b) ((block*)(((char*)b) + sizeof(block) + block_size(b)))
-#define page_is_full(p) ((char*)(p->free_block) == ((char*)p) + PAGE_SIZE)
+#define page_is_full(p) ((char*)(p->free_block) >= ((char*)p) + PAGE_SIZE - sizeof(block))
 
 #define set_next_free_block(p, ptr) set_forward_pointer(p->free_block, ptr)
 #define next_free_block(p) (page*) forward_pointer(p->free_block)
 
 #define get_block(p) ((block*)((char*)p - sizeof(block)))
 
-page* first_page = nullptr;
-page* free_list = nullptr;
-page* last_page = nullptr;
-big_block* first_big_block = nullptr;
-pthread_mutex_t malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
+static page* first_page = nullptr;
+static page* free_list = nullptr;
+static page* last_page = nullptr;
+static big_block* first_big_block = nullptr;
+static pthread_mutex_t malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 size_t get_mark(void* ptr) {
     return block_is_marked(get_block(ptr));
@@ -125,10 +125,10 @@ bool mark_after_overflow() {
 inline void* morecore(size_t size, bool is_big) {
     if (is_big) {
         return mmap(nullptr, size, PROT_READ | PROT_WRITE,
-                    MAP_ANONYMOUS | MAP_SHARED, 0, 0);
+                    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
     }
     void* result = mmap(nullptr, size, PROT_READ | PROT_WRITE,
-                                    MAP_ANONYMOUS | MAP_SHARED, 0, 0);
+                                    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
     parts[parts_count].start = result;
     parts[parts_count].end = result + size;
     parts_count++;
@@ -294,12 +294,15 @@ void sweep() {
         while (b != curr_page->free_block) {
             if (block_is_pinned(b)) {
                 if (prev_page == nullptr) {
-                    first_page = curr_page->next;
+                    first_page = next_page;
                 } else {
-                    prev_page->next = curr_page->next;
+                    prev_page->next = next_page;
                 }
                 curr_page->next = alive_pages;
                 alive_pages = curr_page;
+                if (alive_pages->next == nullptr) {
+                    last_page = alive_pages;
+                }
                 break;
             }
             b = next_block(b);
@@ -324,9 +327,6 @@ void sweep() {
                     max_free_block = free_size;
                 }
             }
-            if (last_page == nullptr) {
-                last_page = alive_pages;
-            }
         }
         curr_page = next_page;
     }
@@ -336,6 +336,7 @@ void sweep() {
         block *b = curr_page->first_block;
         while (b != curr_page->free_block) {
             assert(!block_is_pinned(b));
+            assert(!(block_is_dead(b) && block_is_marked(b)));
             if (block_is_marked(b)) {
                 if (alive_pages == nullptr) {
                     alive_pages = request_new_page(true);
@@ -407,4 +408,5 @@ void sweep() {
     for (size_t free_size = sizeof(void *); free_size <= max_free_block; free_size += sizeof(void *)) {
         free_blocks[free_size] = nullptr;
     }
+    max_free_block = 0;
 }

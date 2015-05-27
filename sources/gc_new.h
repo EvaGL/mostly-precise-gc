@@ -93,7 +93,7 @@ template <class T, typename ... Types>
 gc_ptr<T> gc_new (Types ... types, size_t count = 1) {
 	assert(count >= 0);
 	pthread_mutex_lock(&gc_mutex);
-	tlvars * new_obj_flags = get_thread_handler(pthread_self())->tlflags;
+	tlvars * new_obj_flags = get_thread_handler()->tlflags;
 	pthread_mutex_unlock(&gc_mutex);
 	if (new_obj_flags->nesting_level == 0) {
 		safepoint();

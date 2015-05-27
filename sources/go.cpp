@@ -216,7 +216,7 @@ void clean_deref_roots();
 int gc (bool full) {
 	dprintf("gc: mark_and_sweep\n");
 	pthread_mutex_lock(&gc_mutex);
-		thread_handler* handler = get_thread_handler(pthread_self());
+		thread_handler* handler = get_thread_handler();
 		if (handler->tlflags->nesting_level != 0) {
 			pthread_mutex_unlock(&gc_mutex);
 			return 1;

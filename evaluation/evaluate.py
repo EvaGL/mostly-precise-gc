@@ -6,7 +6,7 @@ class GC:
         self.flags = flags
 
     def compile(self, test="GCBench.cpp", flags = []):
-	args = ["g++", "-o", self.name.lower(), test ,"-D" + self.name ] + flags + self.flags
+	args = ["g++", "-o", self.name.lower(), test ,"-D" + self.name] + flags + self.flags
         call(args)
 
     def run(self, parser=id):
@@ -36,8 +36,8 @@ if __name__ == '__main__':
     GCs = [
            GC("NO_GC"),
            GC("SHARED", ["-std=c++11"]), 
-           GC("MOSTLY_PRECISE", ["-std=c++11","-lmsmalloc","-lprecisegc", "-lpthread"]),
-           GC("GCPP", ["-std=c++11", "-lgc++", "-I/usr/include/gc++"]),
+           GC("MOSTLY_PRECISE", ["-std=c++11","-lprecisegc", "-lpthread", "-L/usr/local", "-Wl,-rpath=/usr/local"]),
+#           GC("GCPP", ["-std=c++11", "-lgc++", "-I/usr/include/gc++"]),
           ]
     print("---- Boehm gc bench ----")
     print(" top | bottom | total (in ms average of %d)" % (NUM, ))
