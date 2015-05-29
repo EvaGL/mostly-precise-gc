@@ -178,6 +178,7 @@ inline block* malloc_in_page(size_t s, page* curr_page) {
         curr_page->free_block->size = new_block->size - s_and_block;
     }
     new_block->size = s;
+    memset(new_block->data, 0, new_block->size);
     return new_block;
 }
 
@@ -215,16 +216,16 @@ void* gcmalloc(size_t s) {
     pthread_mutex_unlock(&malloc_mutex);
     if (res == nullptr) {
         gc();
-    }
-    pthread_mutex_lock(&malloc_mutex);
-    if (first_page == nullptr) {
-        if ((first_page = request_new_page(true)) == nullptr) {
-            return nullptr;
+        pthread_mutex_lock(&malloc_mutex);
+        if (first_page == nullptr) {
+            if ((first_page = request_new_page(true)) == nullptr) {
+                return nullptr;
+            }
+            last_page = first_page;
         }
-        last_page = first_page;
+        res = malloc_internal(align(s), true);
+        pthread_mutex_unlock(&malloc_mutex);
     }
-    res = malloc_internal(align(s), true);
-    pthread_mutex_unlock(&malloc_mutex);
     assert(res != nullptr);
     return res;
 }

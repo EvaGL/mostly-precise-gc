@@ -66,7 +66,7 @@ void remove_thread(pthread_t thread) {
     without_gc_after()
     pthread_mutex_lock(&free_list_mutex);
     curr->next = free_list;
-    free_list->next = curr;
+    free_list = curr;
     pthread_mutex_unlock(&free_list_mutex);
 }
 
@@ -81,7 +81,6 @@ void *start_routine(void *hand) {
 
     pthread_mutex_lock(&gc_mutex);
     if (gc_thread) {
-        pthread_mutex_unlock(&gc_mutex);
         dprintf("waiting for gc before starting thread %d\n", handler->thread);
         pthread_cond_wait(&gc_is_finished, &gc_mutex);
     }
@@ -104,6 +103,7 @@ void create_first_handler() {
     first_thread->stack_bottom = nullptr;
     first_thread->flags = 0;
     first_thread->tlflags = &new_obj_flags_tl_instance;
+    first_thread->next = nullptr;
 }
 
 int thread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine)(void *), void *arg) {

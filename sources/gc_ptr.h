@@ -242,13 +242,30 @@ public:
 	T& operator* () const					{	return * get_ptr(ptr);									}
 	T* operator->() const {
 		T *p = get_ptr(ptr);
-		register_dereferenced_root(p, sizeof(T));
+		if (p) {
+			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			register_dereferenced_root(p, sz);
+		}
 		return p;
 	}
 	operator T * () const 					{	return get_ptr(ptr);									}
 	T * get () const 						{	return get_ptr(ptr);									}
-	T& operator[] (size_t index) const 		{	return (get_ptr(ptr))[index];							}
-	T& operator[] (size_t index) 			{	return (get_ptr(ptr))[index];							}
+	T& operator[] (size_t index) const 		{
+		T *p = get_ptr(ptr);
+		if (p) {
+			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			register_dereferenced_root(p, sz);
+		}
+		return p[index];
+	}
+	T& operator[] (size_t index) 			{
+		T *p = get_ptr(ptr);
+		if (p) {
+			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			register_dereferenced_root(p, sz);
+		}
+		return p[index];
+	}
 	bool operator == (const gc_ptr <T> &a) 	{	return get_ptr(a.ptr) == get_ptr(ptr);					}
 	bool operator != (const gc_ptr <T> &a) 	{	return get_ptr(a.ptr) != get_ptr(ptr);					}
 	bool operator != (const T * a) 			{	return a != get_ptr(ptr);								}

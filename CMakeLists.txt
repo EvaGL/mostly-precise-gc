@@ -38,4 +38,6 @@ add_custom_target(tests
             concurrency
             mark-and-copy-test
             boehm
-            gc_ptr_timing)
+            gc_ptr_timing
+            skiplist
+            merge_sort)
