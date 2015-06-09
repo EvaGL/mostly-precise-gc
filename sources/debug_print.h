@@ -29,3 +29,9 @@ void dprintf (const char* s, const T& value, const Args&... args) {
 #else
 #define dprintf(args...) (void) 0
 #endif
+
+inline long long nanotime( void ) {
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	return ts.tv_sec * 1000000000ll + ts.tv_nsec;
+}

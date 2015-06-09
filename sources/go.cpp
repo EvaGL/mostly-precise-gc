@@ -114,15 +114,12 @@ int go (void * pointer, bool pin_root) {
 	bool stack_overflow = false;
 
 	while (stack_size != 0) {
-		void * v = pop();
+		void *v = pop();
 		if (v == NULL || !is_heap_pointer(v)) {
 			dprintf(" %p is not a heap pointer\n ", v);
 			continue;
 		}
-		base_meta* bm = get_meta_inf(v); /* get metainformation from object*/
-		void *shell = bm->shell;  /* saving ponter on meta object in shell */
-		BLOCK_TAG* tag = (BLOCK_TAG *) shell; /* store shell in tag */
-
+		base_meta *bm = get_meta_inf(v); /* get metainformation from object*/
 		if (!get_mark(bm)) {
 			dprintf("go: alive: bm:%p v:%p tag->model:%i\n", bm, v, tag->model);
 			mark(bm);
@@ -132,74 +129,21 @@ int go (void * pointer, bool pin_root) {
 		} else {
 			dprintf("%p %p already marked\n ", bm, v);
 		}
-		try {
-			switch (tag->model) {
-				case 1: {  /* boxed object */
-						size_t n = *(size_t *)((char *)shell + sizeof(BLOCK_TAG));  /* count of offsets*/
-						void * this_offsets = (char *)shell + sizeof(BLOCK_TAG) + sizeof(size_t);  /* get first offset*/
-						dprintf("offset count: %zu\n", n);
-						for (size_t i = 0; i < n; i++) {  /* walk throught offsets*/
-							void *p = (char*)v + (*((POINTER_DESCR *)this_offsets)).offset;  /* get object by offset*/
-							dprintf("offset: %zu %p\n", (*((POINTER_DESCR *)this_offsets)).offset, bm);
-							if (p) {
-								void * next_vertice = get_next_obj(p);
-								if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
-									dprintf("go : tag 1 : push : %p %i %i\n", next_vertice, get_mark(next_vertice),
-										get_mark(get_meta_inf(next_vertice)));
-									if (push(next_vertice)) { //i.e. fails to allocate memory
-										dprintf("go : tag 1 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
-											get_mark(next_vertice));
-										stack_overflow = true;
-									} else {
-										dprintf("FUNCTION Go : tag : case1 : offset is pushed\n");
-									}
-								}
-							}
-							this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);   /* get next pointer in this obj*/
-						}
+		size_t size = bm->shell[0];
+		size_t count = bm->shell[1];
+		if (count == 0) {
+			continue;
+		}
+		for (int i = 0; i < bm->count; ++i) {
+			for (int j = 0; j < count; ++j) {
+				void *p = get_next_obj((char *) v + bm->shell[2 + j]);
+				if (p && get_mark(get_meta_inf(p)) == 0) {
+					if (push(p)) {
+						stack_overflow = true;
 					}
-					break;
-				case 2:  /* simple obj*/
-					break;
-				case 3: {  /* boxed array*/
-						void * poin = v;
-						size_t sizeType = tag->num_of_el, sizeArray = tag->size;
-						for (size_t i = 0; i < sizeArray; i++, poin = (void *)((char *)poin + sizeType)) {
-							void * meta = tag->ptr;
-							void * this_offsets = (char *)meta + sizeof(BLOCK_TAG) + sizeof(size_t);
-							size_t n = *(size_t *)((char *)meta + sizeof(BLOCK_TAG));
-							for (size_t j = 0; j < n; j++) {
-								dprintf(" %i ", i);
-								void *p = (char*)poin + (*((POINTER_DESCR *)this_offsets)).offset;
-								if (p) {
-									void * next_vertice = get_next_obj(p);
-									if (next_vertice && get_mark(get_meta_inf(next_vertice)) == 0) {
-										if (push(next_vertice)) { //i.e. fails to allocate memory
-											dprintf("go : tag 3 : NOT push : %p ;mark = %i : out of memory\n", next_vertice,
-												get_mark(next_vertice));
-											stack_overflow = true;
-										} else {
-											dprintf("FUNCTION Go : tag : case3 : offset is pushed\n");
-										}
-									}
-								}
-								this_offsets = (char *)this_offsets + sizeof(POINTER_DESCR);
-							}
-						}
-					}
-					break;
-				case 4:  /* unboxed_array*/
-					break;
-				default:
-					throw tag;
-					break;
+				}
 			}
-		} catch(BLOCK_TAG* tag) {
-			dprintf("FUNCTION go : wrong tag!\n");
-			exit(1);
-		} catch(...) {
-			dprintf("UNEXPECTED ERROR!!! CHECK tag->mbit");
-			exit(1);
+			v += size;
 		}
 	}
 	// free(vertices);
@@ -214,6 +158,7 @@ void clean_deref_roots();
 * @return 0 in normal case; 1 in unsafe point case (nesting_level != 0)
 */
 int gc (bool full) {
+	long long start = nanotime();
 	dprintf("gc: mark_and_sweep\n");
 	pthread_mutex_lock(&gc_mutex);
 		thread_handler* handler = get_thread_handler();
@@ -241,6 +186,7 @@ int gc (bool full) {
 			exit_safepoint(handler);
 		}
 	pthread_mutex_unlock(&gc_mutex);
+	printf("gc full = %d time = %lldms\n", full, (nanotime() - start) / 1000000);
 	return 0;
 }
 
@@ -294,7 +240,7 @@ void mark_stack(thread_handler* thread, bool full_gc) {
 }
 
 void clean_deref_roots() {
-	printf("Cleanup deref roots\n");
+	dprintf("Cleanup deref roots\n");
 	thread_handler* handler = first_thread;
 	while (handler) {
 		while (!thread_in_safepoint(handler)) {
@@ -312,7 +258,7 @@ void clean_deref_roots() {
 * @detailed implements mark and sweep stop the world algorithm
 */
 void mark_and_sweep() {
-	printf("go.cpp: mark_and_sweep\n");
+	dprintf("go.cpp: mark_and_sweep\n");
 	dprintf("mark and sweep!\nbefore:");	//printDlMallocInfo(); fflush(stdout);
 #ifdef DEBUGE_MODE
 	live_object_count = 0;

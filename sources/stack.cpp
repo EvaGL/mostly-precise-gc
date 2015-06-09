@@ -52,7 +52,6 @@ void StackMap::delete_stack_root(void * address) {
 	top = top->next;
 	deleted->next = free_list;
 	free_list = deleted;
-
 }
 
 StackElement* StackMap::begin(){

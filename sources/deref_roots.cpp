@@ -25,12 +25,6 @@ static size_t total_count = 0;
 static size_t expand_count = 0;
 static size_t expand_factor = 8;
 
-long long nanotime( void ) {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec * 1000000000ll + ts.tv_nsec;
-}
-
 void register_dereferenced_root(void* root, size_t size) {
     if(!root) {
         return;

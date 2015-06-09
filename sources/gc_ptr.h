@@ -52,10 +52,10 @@ public:
 	void del_ptr (void) {
 		void* ptr = to_get_meta_inf(this);
 		dprintf("in del_ptr\n");
-		if (size == 1) {
+		if (count == 1) {
 			((T*) ptr)->~T();
 		} else {
-			for (size_t i = 0; i < size; i++)
+			for (size_t i = 0; i < count; i++)
 				((T*) ptr)[i].~T();
 		}
 	}
@@ -243,7 +243,7 @@ public:
 	T* operator->() const {
 		T *p = get_ptr(ptr);
 		if (p) {
-			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			size_t sz = sizeof(T) * get_meta_inf(p)->count;
 			register_dereferenced_root(p, sz);
 		}
 		return p;
@@ -253,7 +253,7 @@ public:
 	T& operator[] (size_t index) const 		{
 		T *p = get_ptr(ptr);
 		if (p) {
-			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			size_t sz = sizeof(T) * get_meta_inf(p)->count;
 			register_dereferenced_root(p, sz);
 		}
 		return p[index];
@@ -261,7 +261,7 @@ public:
 	T& operator[] (size_t index) 			{
 		T *p = get_ptr(ptr);
 		if (p) {
-			size_t sz = sizeof(T) * get_meta_inf(p)->size;
+			size_t sz = sizeof(T) * get_meta_inf(p)->count;
 			register_dereferenced_root(p, sz);
 		}
 		return p[index];

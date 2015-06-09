@@ -354,6 +354,9 @@ void sweep() {
                 if (alive_pages == nullptr) {
                     alive_pages = request_new_page(true);
                     last_page = alive_pages;
+                    set_next_free_block(last_page, free_blocks[BIG_BLOCK_THRESHOLD]);
+                    free_blocks[BIG_BLOCK_THRESHOLD] = last_page;
+                    max_free_block = BIG_BLOCK_THRESHOLD;
                 }
                 copy_block(b);
             }
@@ -374,34 +377,18 @@ void sweep() {
             }
             void *data = b->data + sizeof(base_meta);
             base_meta *meta = (base_meta *) b->data;
-            BLOCK_TAG *tag = (BLOCK_TAG *) meta->shell;
-            size_t sizeType = 0;
-            size_t sizeArray = 0;
-            size_t n = 0;
-            char *offsets_base = nullptr;
-            switch (tag->model) {
-                case 1:
-                    sizeArray = 1;
-                    offsets_base = (char *) tag;
-                    break;
-                case 3:
-                    sizeType = tag->num_of_el;
-                    sizeArray = tag->size;
-                    offsets_base = (char *) tag->ptr;
-                    break;
-                default:
-                    break;
+            size_t size = meta->shell[0];
+            size_t count = meta->shell[1];
+            if (count == 0) {
+                b = next_block(b);
+                continue;
             }
-
-            if (offsets_base != nullptr) {
-                n = *(size_t *) (offsets_base + sizeof(BLOCK_TAG));
-            }
-            for (size_t t = 0; t < sizeArray; t++, data = (void *) ((char *) data + sizeType)) {
-                void *this_offsets = offsets_base + sizeof(BLOCK_TAG) + sizeof(size_t);
-                for (size_t i = 0; i < n; i++) {
-                    fix_ptr((char *) data + (*((POINTER_DESCR *) this_offsets)).offset);
-                    this_offsets = (char *) this_offsets + sizeof(POINTER_DESCR);
+            for (int i = 0; i < meta->count; ++i) {
+                for (int j = 0; j < count; ++j) {
+                    void *p = (char *) data + meta->shell[2 + j];
+                    fix_ptr(p);
                 }
+                data += size;
             }
             b = next_block(b);
         }
